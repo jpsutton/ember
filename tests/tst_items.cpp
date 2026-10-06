@@ -5,6 +5,7 @@
 #include <QJsonObject>
 #include <QNetworkAccessManager>
 #include <QTest>
+#include <QTimeZone>
 #include <QUrlQuery>
 
 #include "jellyfin/ApiClient.h"
@@ -71,6 +72,23 @@ class TestItems : public QObject {
     QVERIFY(m.value("poster").toString().contains(json.value("SeriesId").toString()));
     // The episode still is kept as the thumbnail.
     QVERIFY(m.value("thumb").toString().contains(json.value("Id").toString()));
+  }
+
+  void liveTv() {
+    const QVariantMap channel = ember::jellyfin::ItemToVariant(Fixture("channel"), &api_);
+    QCOMPARE(channel.value("type").toString(), QStringLiteral("TvChannel"));
+    QCOMPARE(channel.value("channelNumber").toString(), QStringLiteral("7.1"));
+    QVERIFY(channel.value("playable").toBool());
+    QCOMPARE(channel.value("status").toString(), QString());  // never "watched"
+    QVERIFY(channel.value("isFavorite").toBool());
+    QVERIFY(!channel.value("poster").toString().isEmpty());
+
+    const QVariantMap program = ember::jellyfin::ItemToVariant(Fixture("program"), &api_);
+    QCOMPARE(program.value("channelId").toString(), QStringLiteral("a1b2c3d4e5f60718293a4b5c6d7e8f90"));
+    QCOMPARE(program.value("episodeTitle").toString(), QStringLiteral("The Hanging of Newly O'Brien"));
+    QCOMPARE(program.value("startEpoch").toLongLong(), QDateTime(QDate(2026, 10, 6), QTime(17, 0), QTimeZone::UTC).toSecsSinceEpoch());
+    QCOMPARE(program.value("endEpoch").toLongLong() - program.value("startEpoch").toLongLong(), 3600);
+    QVERIFY(!program.value("playable").toBool());
   }
 
   void folders() {

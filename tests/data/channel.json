@@ -1,0 +1,20 @@
+{
+  "Name": "KXMP-DT",
+  "ServerId": "0f2c4b8e9a6d4f1b8c3e5a7d9b1f2e40",
+  "Id": "a1b2c3d4e5f60718293a4b5c6d7e8f90",
+  "ChannelNumber": "7.1",
+  "Number": "7.1",
+  "Type": "TvChannel",
+  "ChannelType": "TV",
+  "ImageTags": { "Primary": "5e1a9c0d7b3f42e68a2c4d6f8b0e1a3c" },
+  "BackdropImageTags": [],
+  "UserData": {
+    "PlaybackPositionTicks": 0,
+    "PlayCount": 3,
+    "IsFavorite": true,
+    "Played": false,
+    "Key": "a1b2c3d4-e5f6-0718-293a-4b5c6d7e8f90",
+    "ItemId": "a1b2c3d4e5f60718293a4b5c6d7e8f90"
+  },
+  "MediaType": "Video"
+}

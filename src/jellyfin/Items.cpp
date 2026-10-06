@@ -96,7 +96,7 @@ bool IsPlayable(const QJsonObject& item) {
   if (item.value(QStringLiteral("IsFolder")).toBool()) return false;
   const QString type = item.value(QStringLiteral("Type")).toString();
   return type == QLatin1String("Movie") || type == QLatin1String("Episode") || type == QLatin1String("Video") ||
-         type == QLatin1String("MusicVideo") || type == QLatin1String("Trailer") ||
+         type == QLatin1String("MusicVideo") || type == QLatin1String("Trailer") || type == QLatin1String("TvChannel") ||
          item.value(QStringLiteral("MediaType")).toString() == QLatin1String("Video");
 }
 
@@ -157,6 +157,14 @@ QVariantMap ItemToVariant(const QJsonObject& item, const ApiClient* api) {
   } else {
     m[QStringLiteral("episodeLabel")] = QString();
   }
+  // Live TV: a channel's number; a programme's channel, times and episode.
+  m[QStringLiteral("channelNumber")] = item.value(QStringLiteral("ChannelNumber")).toString();
+  m[QStringLiteral("channelId")] = item.value(QStringLiteral("ChannelId")).toString();
+  const QDateTime starts = QDateTime::fromString(item.value(QStringLiteral("StartDate")).toString(), Qt::ISODate);
+  const QDateTime ends = QDateTime::fromString(item.value(QStringLiteral("EndDate")).toString(), Qt::ISODate);
+  m[QStringLiteral("startEpoch")] = starts.isValid() ? QVariant(starts.toSecsSinceEpoch()) : QVariant();
+  m[QStringLiteral("endEpoch")] = ends.isValid() ? QVariant(ends.toSecsSinceEpoch()) : QVariant();
+  m[QStringLiteral("episodeTitle")] = item.value(QStringLiteral("EpisodeTitle")).toString();
   m[QStringLiteral("childCount")] = item.value(QStringLiteral("ChildCount")).toInt();
   m[QStringLiteral("recursiveCount")] = item.value(QStringLiteral("RecursiveItemCount")).toInt();
 
@@ -171,7 +179,8 @@ QVariantMap ItemToVariant(const QJsonObject& item, const ApiClient* api) {
   m[QStringLiteral("unplayedCount")] = user.value(QStringLiteral("UnplayedItemCount")).toInt();
   m[QStringLiteral("isFavorite")] = user.value(QStringLiteral("IsFavorite")).toBool();
   QString status;
-  if (IsPlayable(item)) {
+  // A channel is never "watched".
+  if (IsPlayable(item) && type != QLatin1String("TvChannel")) {
     status = played ? QStringLiteral("watched") : position > 0 ? QStringLiteral("inProgress") : QStringLiteral("unwatched");
   }
   m[QStringLiteral("status")] = status;

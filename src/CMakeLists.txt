@@ -44,6 +44,8 @@ qt_add_qml_module(ember_lib
     models/ItemListModel.h models/ItemListModel.cpp
     playback/Playback.h playback/Playback.cpp
     playback/Shuffle.h playback/Shuffle.cpp
+    livetv/GuideLogic.h livetv/GuideLogic.cpp
+    livetv/LiveGuide.h livetv/LiveGuide.cpp
 )
 
 target_compile_definitions(ember_lib PUBLIC EMBER_VERSION="${PROJECT_VERSION}")
@@ -52,7 +54,8 @@ target_compile_options(ember_lib PRIVATE -Wall -Wextra)
 target_include_directories(ember_lib PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}/app" "${CMAKE_CURRENT_SOURCE_DIR}/jellyfin" "${CMAKE_CURRENT_SOURCE_DIR}/models"
-  "${CMAKE_CURRENT_SOURCE_DIR}/playback" "${CMAKE_CURRENT_SOURCE_DIR}/player")
+  "${CMAKE_CURRENT_SOURCE_DIR}/playback" "${CMAKE_CURRENT_SOURCE_DIR}/player"
+  "${CMAKE_CURRENT_SOURCE_DIR}/livetv")
 target_link_libraries(ember_lib PUBLIC
   Qt6::Core Qt6::Gui Qt6::Quick Qt6::Network Qt6::DBus Qt6::WebSockets
   KF6::ConfigCore KF6::ConfigGui KF6::CoreAddons KF6::DBusAddons

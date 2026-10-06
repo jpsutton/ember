@@ -37,12 +37,13 @@ constexpr int kProbeTimeoutMs = 5000;
 constexpr int kQuickConnectPollMs = 3000;
 constexpr int kQuickConnectLifetimeMs = 5 * 60 * 1000;
 
-// Library kinds Ember can browse. Music, live TV, books, photos and
-// playlists are left out.
+// Library kinds Ember can browse ("livetv" opens the channel guide). Music,
+// books, photos and playlists are left out.
 bool IsSupportedCollection(const QString& type) {
   static const QStringList supported = {QString(),           QStringLiteral("movies"),     QStringLiteral("tvshows"),
                                         QStringLiteral("boxsets"), QStringLiteral("homevideos"),
-                                        QStringLiteral("musicvideos"), QStringLiteral("mixed"), QStringLiteral("folders")};
+                                        QStringLiteral("musicvideos"), QStringLiteral("mixed"), QStringLiteral("folders"),
+                                        QStringLiteral("livetv")};
   return supported.contains(type);
 }
 

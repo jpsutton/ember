@@ -31,7 +31,8 @@ QString ImageUrl(const ApiClient* api, const QString& item_id, const QString& ty
 //   played, playedPercentage, playbackPositionTicks, resumeText,
 //   unplayedCount, isFavorite, poster, backdrop, logo, thumb, videoFlags,
 //   audioFlags, hasSubtitles, status (playable leaf: "watched",
-//   "inProgress", "unwatched"; folders: "")
+//   "inProgress", "unwatched"; folders and channels: ""), and for Live TV
+//   channelNumber, channelId, startEpoch, endEpoch (seconds), episodeTitle
 QVariantMap ItemToVariant(const QJsonObject& item, const ApiClient* api);
 
 // When the item became watchable, for "Recently aired": its premiere date,

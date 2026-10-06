@@ -42,6 +42,8 @@ FocusScope {
         }
         onItemChanged: page.nextDismissed = false
         onSeeked: mpris.notifySeeked()
+        // Show the panel briefly when playback starts.
+        onStateChanged: if (state === Playback.Playing) page.showOsd()
     }
 
     function startNext() {

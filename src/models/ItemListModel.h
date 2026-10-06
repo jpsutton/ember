@@ -44,6 +44,8 @@ class ItemListModel : public QAbstractListModel {
   Q_PROPERTY(int totalCount READ totalCount NOTIFY countChanged)
   Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
   Q_PROPERTY(QString errorString READ errorString NOTIFY errorStringChanged)
+  // Changes whenever any row does, so bindings that call get() re-evaluate.
+  Q_PROPERTY(int revision READ revision NOTIFY revisionChanged)
 
  public:
   explicit ItemListModel(QObject* parent = nullptr);
@@ -85,6 +87,7 @@ class ItemListModel : public QAbstractListModel {
   int totalCount() const { return total_; }
   bool loading() const { return loading_; }
   QString errorString() const { return error_string_; }
+  int revision() const { return revision_; }
 
   Q_INVOKABLE QVariantMap get(int index) const;
   Q_INVOKABLE int indexOfId(const QString& id) const;
@@ -104,6 +107,7 @@ class ItemListModel : public QAbstractListModel {
   void loadingChanged();
   void errorStringChanged();
   void letterFound(int index);
+  void revisionChanged();
   // The first page has arrived after a reload.
   void loaded();
 
@@ -145,6 +149,7 @@ class ItemListModel : public QAbstractListModel {
   bool exhausted_ = false;
   QString error_string_;
   quint64 generation_ = 0;
+  int revision_ = 0;
   QTimer reload_timer_;
   QList<QByteArray> field_names_;
 };

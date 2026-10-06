@@ -19,6 +19,9 @@ FocusScope {
     function open(title, options, callback, dock, startIndex) {
         root.title = title
         root.options = options
+        // Set imperatively: a list rebound while hidden kept its old rows.
+        list.model = []
+        list.model = options
         root.callback = callback
         root.dock = dock || "center"
         returnFocus = root.Window.activeFocusItem
@@ -81,7 +84,6 @@ FocusScope {
             keyNavigationWraps: true
             boundsBehavior: Flickable.StopAtBounds
             highlightMoveDuration: Theme.animation
-            model: root.options
 
             delegate: Item {
                 id: option

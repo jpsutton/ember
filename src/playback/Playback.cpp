@@ -146,8 +146,25 @@ QCoro::Task<> Playback::playTask(QString item_id, bool from_start, quint64 gener
     // Switching items (next episode): close the old session first.
     session_open_ = false;
     progress_timer_.stop();
-    report(QStringLiteral("Stopped"));
+    const QString previous = item_.value(QStringLiteral("id")).toString();
+    const bool finished_previous = mark_previous_played_;
+    mark_previous_played_ = false;
+    co_await report(QStringLiteral("Stopped"));
+    if (!self) co_return;
+    if (finished_previous && !previous.isEmpty()) {
+      // Moving on from Up Next means the episode was watched, even when the
+      // credits started before the server's 90 % mark.
+      Session* session = Session::instance();
+      QUrlQuery query;
+      query.addQueryItem(QStringLiteral("userId"), session->userId());
+      co_await session->api()->post(QStringLiteral("/UserPlayedItems/%1").arg(previous), {}, query);
+      if (!self) co_return;
+      co_await session->api()->post(QStringLiteral("/UserItems/%1/UserData").arg(previous),
+                                    QJsonDocument(QJsonObject{{QStringLiteral("PlaybackPositionTicks"), 0}}), query);
+      if (!self) co_return;
+    }
   }
+  if (generation != generation_) co_return;
   setError(QString());
   setState(State::Loading);
   stream_ = Stream();
@@ -454,7 +471,10 @@ void Playback::applyTrackSelection() {
   if (stream_.method == QLatin1String("DirectPlay")) {
     const int aid = mpvTrackId(QStringLiteral("audio"), audio_index_);
     video_->setOption(QStringLiteral("aid"), aid > 0 ? QString::number(aid) : QStringLiteral("auto"));
+    qCInfo(lcPlayback, "audio stream %d -> mpv aid %d", audio_index_, aid);
   }
+  qCInfo(lcPlayback, "subtitle stream %d -> mpv sid %d", subtitle_index_,
+         subtitle_index_ >= 0 ? mpvTrackId(QStringLiteral("sub"), subtitle_index_) : -1);
   if (subtitle_index_ < 0) {
     video_->setOption(QStringLiteral("sid"), QStringLiteral("no"));
     return;
@@ -576,6 +596,7 @@ void Playback::endSession(bool completed) {
 void Playback::playNext() {
   const QString id = next_item_.value(QStringLiteral("id")).toString();
   if (id.isEmpty()) return;
+  mark_previous_played_ = true;
   play(id, next_item_.value(QStringLiteral("played")).toBool());
 }
 

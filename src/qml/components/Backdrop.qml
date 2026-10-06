@@ -41,18 +41,23 @@ Item {
         onStatusChanged: if (status === Image.Ready) { opacity = 1; front.opacity = 0 }
     }
 
-    property bool _frontNext: true
-
     onSourceChanged: {
         if (source === "") {
             front.opacity = 0
             back.opacity = 0
             return
         }
-        if ((front.opacity > 0 && front.source == source) || (back.opacity > 0 && back.source == source)) return
-        // Load into whichever layer is hidden, then fade it in.
-        if (front.opacity >= back.opacity) back.source = source
-        else front.source = source
+        const shown = front.opacity >= back.opacity ? front : back
+        const hidden = shown === front ? back : front
+        if (String(shown.source) === source) return
+        // Load into the hidden layer, then fade it in. When it already holds
+        // this image, no status change will come, so swap now.
+        if (String(hidden.source) === source && hidden.status === Image.Ready) {
+            hidden.opacity = 1
+            shown.opacity = 0
+        } else {
+            hidden.source = source
+        }
     }
 
     Rectangle {

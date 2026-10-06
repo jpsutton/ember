@@ -173,6 +173,8 @@ class Playback : public QObject {
   bool started_reported_ = false;
   bool session_open_ = false;
   bool file_loaded_ = false;
+  // The next play() comes from Up Next: mark the current item watched.
+  bool mark_previous_played_ = false;
   quint64 generation_ = 0;
   QTimer progress_timer_;
 };

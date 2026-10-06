@@ -50,6 +50,13 @@ ItemListModel::ItemListModel(QObject* parent) : QAbstractListModel(parent) {
   reload_timer_.setSingleShot(true);
   reload_timer_.setInterval(0);
   connect(&reload_timer_, &QTimer::timeout, this, &ItemListModel::reload);
+  auto bump = [this]() {
+    ++revision_;
+    emit revisionChanged();
+  };
+  connect(this, &QAbstractItemModel::dataChanged, this, bump);
+  connect(this, &QAbstractItemModel::modelReset, this, bump);
+  connect(this, &QAbstractItemModel::rowsInserted, this, bump);
 }
 
 int ItemListModel::rowCount(const QModelIndex& parent) const { return parent.isValid() ? 0 : int(rows_.size()); }

@@ -62,10 +62,13 @@ def main():
     token = login("ember", "ember")
 
     config = request("GET", "/System/Configuration", token=token)
-    if not config.get("QuickConnectAvailable"):
+    # The test clips are a few minutes long; Jellyfin only keeps resume
+    # points for items longer than MinResumeDurationSeconds (300 by default).
+    if not config.get("QuickConnectAvailable") or config.get("MinResumeDurationSeconds") != 30:
         config["QuickConnectAvailable"] = True
+        config["MinResumeDurationSeconds"] = 30
         request("POST", "/System/Configuration", config, token=token)
-        print("enabled Quick Connect")
+        print("enabled Quick Connect, resume points from 30 s")
 
     users = {u["Name"]: u for u in request("GET", "/Users", token=token)}
     if "guest" not in users:

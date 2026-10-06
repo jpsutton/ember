@@ -16,7 +16,10 @@ FocusScope {
     // The item last played from here, refreshed when the player closes.
     property string playedId
 
-    readonly property var current: list.currentIndex >= 0 ? items.get(list.currentIndex) : ({})
+    // Re-read when any row changes. The revision has to be used in the
+    // expression: the QML compiler drops a bare read, and the dependency
+    // with it.
+    readonly property var current: items.revision >= 0 && list.currentIndex >= 0 ? items.get(list.currentIndex) : ({})
     readonly property bool sortable: items.mode === "items" && !context.fixedSort
     readonly property string viewKey: context.viewKey || ""
 
@@ -50,6 +53,8 @@ FocusScope {
     }
 
     function saveView() {
+        // Stay on the same item when the order changes.
+        restoreId = current.id || ""
         if (viewKey === "") return
         ViewSettings.save(viewKey, { sortBy: items.sortBy, descending: String(items.descending),
                                       hideWatched: String(items.hideWatched) })

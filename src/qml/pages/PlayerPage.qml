@@ -6,7 +6,8 @@ import Ember.Player
 // Full-screen playback. The video shows through the transparent window;
 // everything here is drawn over it.
 //
-// Keys: OK or Play/Pause pauses, Left/Right seek, Up/Down and Channel +/-
+// Keys: OK or Play/Pause pauses, Left/Right skip back and forward (at once,
+// with a running total at that side), Up/Down and Channel +/-
 // jump chapters, Menu opens audio and subtitle choices, Info toggles the
 // panel, Back or Stop ends playback.
 FocusScope {
@@ -27,8 +28,13 @@ FocusScope {
     // The Up Next card was dismissed for this item.
     property bool nextDismissed: false
     property real nextCountdown: 0
-    // Seeking with Left/Right: where the preview is.
-    property real seekPreview: -1
+    // Skipping with Left/Right (as Plezy does): each press seeks at once,
+    // and a readout at that side of the picture adds up a run of presses in
+    // one direction. skipTarget is where the last press went, since the
+    // position lags a seek in flight.
+    property real skipTotal: 0
+    property bool skipForward: true
+    property real skipTarget: -1
 
     readonly property bool inIntro: playback.introStart >= 0 && playback.position >= playback.introStart
                                     && playback.position < playback.introEnd - 1
@@ -96,8 +102,8 @@ FocusScope {
         case "Unpause": playback.setPaused(false); break
         case "PlayPause": playback.togglePause(); break
         case "Seek": playback.seekTo(seekSeconds); break
-        case "Rewind": playback.seekRelative(-EmberSettings.seekStepSeconds); break
-        case "FastForward": playback.seekRelative(EmberSettings.seekStepSeconds); break
+        case "Rewind": skip(-EmberSettings.seekStepSeconds); break
+        case "FastForward": skip(EmberSettings.seekStepSeconds); break
         case "PreviousTrack": playback.seekTo(0); break
         case "NextTrack":
             if (queue.length > 0) playFromQueue()
@@ -117,17 +123,29 @@ FocusScope {
         osdTimer.restart()
     }
 
-    function seekBy(seconds) {
-        if (playback.state !== Playback.Playing) return
-        const base = seekPreview >= 0 ? seekPreview : playback.position
-        seekPreview = Math.max(0, Math.min(playback.duration - 1, base + seconds))
-        seekCommit.restart()
-        showOsd()
+    function skip(seconds) {
+        if (playback.state !== Playback.Playing || playback.duration <= 0) return
+        const forward = seconds > 0
+        // A press the other way, or after the readout went, starts a new run.
+        const continuing = skipBadgeTimer.running && skipForward === forward
+        const base = continuing && skipTarget >= 0 ? skipTarget : playback.position
+        const target = Math.max(0, Math.min(playback.duration - 1, base + seconds))
+        skipTotal = (continuing ? skipTotal : 0) + Math.abs(target - base)
+        skipForward = forward
+        skipTarget = target
+        playback.seekTo(target)
+        skipBadgeTimer.restart()
+    }
+
+    // "+10s", "-1:30": the run so far.
+    function skipLabel() {
+        const total = Math.round(skipTotal)
+        return (skipForward ? "+" : "\u2212") + (total < 60 ? total + "s" : Format.clock(total))
     }
 
     function jumpChapter(direction) {
         const chapters = playback.chapters
-        if (chapters.length === 0) { seekBy(direction * 60); return }
+        if (chapters.length === 0) { skip(direction * 60); return }
         let target = -1
         if (direction > 0) {
             for (const c of chapters) if (c.start > playback.position + 1) { target = c.start; break }
@@ -209,17 +227,14 @@ FocusScope {
     Timer {
         id: osdTimer
         interval: 5000
-        onTriggered: if (!playback.paused && page.seekPreview < 0) page.osdVisible = false
+        onTriggered: if (!playback.paused) page.osdVisible = false
     }
 
+    // The skip readout stays this long after the last press, then fades.
     Timer {
-        id: seekCommit
-        interval: 700
-        onTriggered: {
-            if (page.seekPreview >= 0) playback.seekTo(page.seekPreview)
-            page.seekPreview = -1
-            osdTimer.restart()
-        }
+        id: skipBadgeTimer
+        interval: 1200
+        onTriggered: page.skipTarget = -1
     }
 
     Timer {
@@ -354,6 +369,58 @@ FocusScope {
         }
     }
 
+    // The skip readout: the run so far at the side the skip goes, and a
+    // chevron drifting that way. No backing, so it covers as little of the
+    // picture as it can (Plezy's design).
+    Row {
+        id: skipBadge
+        anchors.verticalCenter: parent.verticalCenter
+        anchors.right: page.skipForward ? parent.right : undefined
+        anchors.left: page.skipForward ? undefined : parent.left
+        anchors.rightMargin: Theme.px(96)
+        anchors.leftMargin: Theme.px(96)
+        // The chevron sits on the outer side.
+        layoutDirection: page.skipForward ? Qt.LeftToRight : Qt.RightToLeft
+        spacing: Theme.px(12)
+        opacity: skipBadgeTimer.running ? 1 : 0
+        visible: opacity > 0
+        Behavior on opacity { NumberAnimation { duration: 300 } }
+
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: page.skipLabel()
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.px(56)
+            font.bold: true
+            color: "white"
+            style: Text.Outline
+            styleColor: "#a0000000"
+        }
+        Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: page.skipForward ? "\u203a" : "\u2039"
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.px(84)
+            font.bold: true
+            color: "white"
+            style: Text.Outline
+            styleColor: "#a0000000"
+            transform: Translate { id: drift }
+            SequentialAnimation {
+                running: skipBadge.visible
+                loops: Animation.Infinite
+                NumberAnimation {
+                    target: drift; property: "x"; from: 0; to: (page.skipForward ? 1 : -1) * Theme.px(14)
+                    duration: 770; easing.type: Easing.OutQuad
+                }
+                NumberAnimation {
+                    target: drift; property: "x"; to: 0
+                    duration: 330; easing.type: Easing.InOutQuad
+                }
+            }
+        }
+    }
+
     // The on-screen display.
     Item {
         id: osd
@@ -413,10 +480,9 @@ FocusScope {
             y: Theme.px(190)
             width: parent.width - Theme.px(160)
             height: Theme.px(10)
-            readonly property real shown: page.seekPreview >= 0 ? page.seekPreview : playback.position
             Rectangle { anchors.fill: parent; radius: height / 2; color: "#40ffffff" }
             Rectangle {
-                width: playback.duration > 0 ? parent.width * Math.min(1, bar.shown / playback.duration) : 0
+                width: playback.duration > 0 ? parent.width * Math.min(1, playback.position / playback.duration) : 0
                 height: parent.height
                 radius: height / 2
                 color: Theme.highlight
@@ -432,70 +498,22 @@ FocusScope {
                     color: "#c0000000"
                 }
             }
-
-            // Trickplay thumbnail while seeking.
-            Rectangle {
-                id: preview
-                readonly property var tp: playback.trickplay
-                readonly property bool available: tp.url !== undefined && page.seekPreview >= 0
-                visible: available && thumb.status === Image.Ready
-                width: Theme.px(320)
-                height: tp.width ? width * tp.height / tp.width : Theme.px(180)
-                x: Math.max(0, Math.min(bar.width - width, bar.width * bar.shown / Math.max(1, playback.duration) - width / 2))
-                // Above the panel, clear of the title.
-                y: -bar.y - height - Theme.px(20)
-                color: "black"
-                border.color: Theme.highlight
-                border.width: Theme.px(2)
-                clip: true
-                readonly property int frame: available ? Math.floor(page.seekPreview / Math.max(0.001, tp.interval)) : 0
-                readonly property int perTile: available ? tp.tileWidth * tp.tileHeight : 1
-                readonly property int tile: Math.floor(frame / perTile)
-                readonly property int inTile: frame % perTile
-                Image {
-                    id: thumb
-                    source: preview.available ? preview.tp.url.replace("%1", preview.tile) : ""
-                    asynchronous: true
-                    cache: true
-                    sourceClipRect: preview.available
-                        ? Qt.rect((preview.inTile % preview.tp.tileWidth) * preview.tp.width,
-                                  Math.floor(preview.inTile / preview.tp.tileWidth) * preview.tp.height,
-                                  preview.tp.width, preview.tp.height)
-                        : Qt.rect(0, 0, 0, 0)
-                    width: preview.width
-                    height: preview.height
-                }
-            }
-        }
-
-        // Loads the tile for the current position while the panel is up, so
-        // the first seek has its thumbnail ready.
-        Image {
-            visible: false
-            asynchronous: true
-            // Only the download matters; decode it small.
-            sourceSize: Qt.size(400, 225)
-            readonly property var tp: playback.trickplay
-            source: tp.url !== undefined && osd.visible
-                    ? tp.url.replace("%1", Math.floor(Math.floor(playback.position / Math.max(0.001, tp.interval))
-                                                      / Math.max(1, tp.tileWidth * tp.tileHeight)))
-                    : ""
         }
 
         Text {
             anchors.left: bar.left
             anchors.top: bar.bottom
             anchors.topMargin: Theme.px(16)
-            text: Format.clock(bar.shown)
+            text: Format.clock(playback.position)
             font.family: Theme.fontFamily
             font.pixelSize: Theme.bodyFont
-            color: page.seekPreview >= 0 ? Theme.highlight : Theme.text
+            color: Theme.text
         }
         Text {
             anchors.right: bar.right
             anchors.top: bar.bottom
             anchors.topMargin: Theme.px(16)
-            text: "-" + Format.clock(Math.max(0, playback.duration - bar.shown)) + "  /  " + Format.clock(playback.duration)
+            text: "-" + Format.clock(Math.max(0, playback.duration - playback.position)) + "  /  " + Format.clock(playback.duration)
             font.family: Theme.fontFamily
             font.pixelSize: Theme.bodyFont
             color: Theme.text
@@ -535,11 +553,11 @@ FocusScope {
         case Qt.Key_Left:
         case Qt.Key_MediaPrevious:
         case Qt.Key_AudioRewind:
-            page.seekBy(-step)
+            page.skip(-step)
             break
         case Qt.Key_Right:
         case Qt.Key_AudioForward:
-            page.seekBy(step)
+            page.skip(step)
             break
         case Qt.Key_MediaNext:
             if (page.queue.length > 0) page.playFromQueue()

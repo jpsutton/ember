@@ -56,7 +56,6 @@ class Playback : public QObject {
   Q_PROPERTY(bool shuffling READ shuffling NOTIFY shufflingChanged)
   // {url (with %1 for the tile index), width, height, tileWidth, tileHeight,
   //  count, interval (seconds)}, or empty.
-  Q_PROPERTY(QVariantMap trickplay READ trickplay NOTIFY itemChanged)
 
  public:
   enum class State { Idle, Loading, Playing, Ended, Failed };
@@ -88,7 +87,6 @@ class Playback : public QObject {
   double creditsStart() const { return credits_start_; }
   QVariantMap nextItem() const { return next_item_; }
   bool shuffling() const { return !shuffle_aired_.isEmpty(); }
-  QVariantMap trickplay() const { return trickplay_; }
 
   // Starts |item_id|, resuming from the saved position unless |from_start|.
   Q_INVOKABLE void play(const QString& item_id, bool from_start = false);
@@ -186,7 +184,6 @@ class Playback : public QObject {
   // Shuffle: the episodes in airing order, and those still to play.
   QStringList shuffle_aired_;
   QStringList shuffle_queue_;
-  QVariantMap trickplay_;
   QVariantList mpv_tracks_;
   bool started_reported_ = false;
   bool session_open_ = false;

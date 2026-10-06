@@ -244,7 +244,7 @@ QCoro::Task<> Playback::playTask(QString item_id, bool from_start, double start_
   ApiClient* api = session->api();
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("userId"), session->userId());
-  query.addQueryItem(QStringLiteral("Fields"), jellyfin::ListFields() + QStringLiteral(",MediaSources,Chapters,Trickplay"));
+  query.addQueryItem(QStringLiteral("Fields"), jellyfin::ListFields() + QStringLiteral(",MediaSources,Chapters"));
   const Reply reply = co_await api->get(QStringLiteral("/Items/%1").arg(item_id), query);
   if (!self || generation != generation_) co_return;
   if (!reply.ok()) {
@@ -262,36 +262,6 @@ QCoro::Task<> Playback::playTask(QString item_id, bool from_start, double start_
                                  {QStringLiteral("start"), Seconds(chapter.value(QStringLiteral("StartPositionTicks")).toInteger())}});
   }
 
-  trickplay_.clear();
-  const QJsonObject trickplay_sources = item_json_.value(QStringLiteral("Trickplay")).toObject();
-  if (!trickplay_sources.isEmpty()) {
-    const QString source_id = trickplay_sources.keys().first();
-    const QJsonObject widths = trickplay_sources.value(source_id).toObject();
-    QJsonObject best;
-    int best_width = 0;
-    for (const QString& key : widths.keys()) {
-      const int width = key.toInt();
-      if (best_width == 0 || (width >= 240 && (best_width < 240 || width < best_width)) || (best_width < 240 && width > best_width)) {
-        best_width = width;
-        best = widths.value(key).toObject();
-      }
-    }
-    if (best_width > 0) {
-      QUrlQuery tq;
-      tq.addQueryItem(QStringLiteral("MediaSourceId"), source_id);
-      tq.addQueryItem(QStringLiteral("ApiKey"), api->token());
-      trickplay_ = QVariantMap{
-          {QStringLiteral("url"),
-           api->url(QStringLiteral("/Videos/%1/Trickplay/%2/").arg(item_id).arg(best_width)).toString() +
-               QStringLiteral("%1.jpg?") + tq.toString(QUrl::FullyEncoded)},
-          {QStringLiteral("width"), best.value(QStringLiteral("Width")).toInt()},
-          {QStringLiteral("height"), best.value(QStringLiteral("Height")).toInt()},
-          {QStringLiteral("tileWidth"), best.value(QStringLiteral("TileWidth")).toInt()},
-          {QStringLiteral("tileHeight"), best.value(QStringLiteral("TileHeight")).toInt()},
-          {QStringLiteral("count"), best.value(QStringLiteral("ThumbnailCount")).toInt()},
-          {QStringLiteral("interval"), best.value(QStringLiteral("Interval")).toInt() / 1000.0}};
-    }
-  }
   emit itemChanged();
 
   const qint64 saved = item_json_.value(QStringLiteral("UserData")).toObject().value(QStringLiteral("PlaybackPositionTicks")).toInteger();

@@ -10,8 +10,9 @@ the first tag.
 M0 through M4 are done and tested on the BRIX test box (Bay Trail N2807,
 couchbox-base 0.9.0) against a local Jellyfin 12.2 dev server
 (`scripts/dev-server.sh`), driven by injected key presses and screenshots
-(`tools/remote-keys.py`, `tools/ember-shot`). Most of M5 and parts of M6 are
-in as well. See "Findings" at the end for what the spikes and testing showed,
+(`tools/remote-keys.py`, `tools/ember-shot`). M5 and M6 are done too, and
+the cast target from "Later". See "Findings" at the end for what the spikes
+and testing showed,
 and "Not yet verified" for what still needs a real remote, a real server or a
 newer couchbox.
 
@@ -51,7 +52,8 @@ for day-to-day watching.
 - Music libraries.
 - Live TV (couchbox-iptv covers it).
 - Downloads, SyncPlay, multiple servers at once.
-- Being remote-controlled by other Jellyfin clients ("Play On").
+- Being remote-controlled by other Jellyfin clients ("Play On"). (Done after
+  all; see Status.)
 
 ## Decisions
 
@@ -63,7 +65,7 @@ for day-to-day watching.
 | Settings | KConfig + KConfigXT (`.kcfg`), `~/.config/emberrc` | Generated typed accessors; same format as couchboxrc. |
 | Formatting | KCoreAddons `KFormat` | "1 hour, 30 minutes", sizes, relative dates. |
 | Single instance | KDBusAddons `KDBusService(Unique)` | Second launch raises the first window. |
-| Icons | Kirigami `Kirigami.Icon` only | Theme icons. No other Kirigami controls: their focus handling and Breeze look don't suit a remote-driven Amber look. |
+| Icons | Kirigami `Kirigami.Icon` only | Theme icons. No other Kirigami controls: their focus handling and Breeze look don't suit a remote-driven Amber look. (As built, Ember draws its few icons itself and doesn't use Kirigami at all.) |
 | Video | Port couchbox-iptv's vendored Plezy mpv plane to Qt | mpv renders into a `wl_subsurface` below the transparent window; no copy through the toolkit. |
 | Credentials | KConfig state file `~/.local/state/ember/session`, mode 0600 | **Not QtKeychain**: couchbox disables KWallet (`couchbox-base/kwalletrc`), so there is no secret service. |
 | Licence | GPL-3.0-only | Carries Plezy's GPL-3.0 mpv plane code, same as couchbox-iptv. |

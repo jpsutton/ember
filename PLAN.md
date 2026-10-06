@@ -5,6 +5,26 @@ Ember is a Jellyfin client for couchbox. App ID `org.couchbox.ember`, repo
 desktop file, `visible-apps` and the user's config paths, so settle it before
 the first tag.
 
+## Status (2026-10-06)
+
+M0 through M4 are done and tested on the BRIX test box (Bay Trail N2807,
+couchbox-base 0.9.0) against a local Jellyfin 12.2 dev server
+(`scripts/dev-server.sh`), driven by injected key presses and screenshots
+(`tools/remote-keys.py`, `tools/ember-shot`). Most of M5 and parts of M6 are
+in as well. See "Findings" at the end for what the spikes and testing showed,
+and "Not yet verified" for what still needs a real remote, a real server or a
+newer couchbox.
+
+| Milestone | State |
+|---|---|
+| M0 spikes | Done. Plane under Qt works (see Findings); key survey done with injected codes; Jellyfin 12 auth rules confirmed. |
+| M1 skeleton | Done: CMake, CI (GitHub Actions, Arch container), unit tests, single instance, Quick Connect / password sign-in, LAN discovery, library picker. |
+| M2 home | Done: blade with pinned or static highlight, submenus, random fanart per library, clock, item count. No shelves (by decision). |
+| M3 lists | Done: Amber List view, paging, drill-down show → season → episodes (one-season shows skip the season list), position kept on Back. |
+| M4 playback | Done: direct play and HLS transcode, resume, progress reports, audio/subtitle menus, chapters, skip intro (chapter fallback), Up Next with auto-play, MPRIS, screen-saver inhibit. couchbox packaging prepared (couchbox branch `feat/ember`, not pushed). |
+| M5 Amber parity | Mostly done: side blade (sort, order, hide watched), A–Z strip, Channel ± paging, info page with cast, context menu, genres, years, collections, search. Websocket refresh not done. |
+| M6 polish | Partly: trickplay preview on the seek bar (written, untested: the dev server has no trickplay images), on-screen keyboard, search. Not done: list variants, home menu editing, GLib-free plane (moot: the Qt port never used GLib), threaded render loop trial. |
+
 ## Goal
 
 Browse the library the way Kodi's Amber skin does with its vertical menu: a
@@ -119,7 +139,8 @@ Long-press OK lives in Ember, not in fire-blaster. A global long-OK in
 fire-blaster would delay OK in every app and would break Bigscreen's
 hold-OK-to-close on its Tasks page. In Ember, OK acts on key release when held
 less than 0.6 s; at 0.6 s the context menu opens and the release is swallowed.
-Where no context menu exists (menus, dialogs), OK acts on press as usual.
+(As built, OK acts on release everywhere, menus and dialogs included: one rule
+is simpler, and the delay is the length of the press.)
 
 ### Scaling
 
@@ -283,22 +304,35 @@ From couchbox's README and `packages/couchbox-base`:
   Tie it to the bus connection like couchbox-iptv's `screen_inhibitor.dart`.
 - **Remote keys** (after fire-blaster remaps):
 
-  | Action | Qt key | Notes |
-  |---|---|---|
-  | OK | `Key_Return`, `Key_Enter`, `Key_Select` | Accept both Return and Enter. On list items: acts on release; held 0.6 s opens the context menu. |
-  | Back | `Key_Back`, `Key_Escape`, `Key_Backspace` | |
-  | Context menu | `Key_Menu` | Long Menu is taken by Bigscreen's overlay. |
-  | Home (short) | `Key_HomePage` | Go to the home screen. Long Home is taken by KWin. |
-  | Info | `Key_Info` or keysym `0x10081000 + 0x166` | May arrive as `Key_unknown`; match `nativeVirtualKey()`. |
-  | Channel +/- | `Key_ChannelUp/Down` or keysym fallback, `Key_PageUp/Down` | Page the list. |
-  | Play/Pause | `Key_MediaTogglePlayPause`, or `Key_MediaPlay` with `nativeScanCode() == 172` | XKB maps KEY_PLAYPAUSE to XF86AudioPlay (UPSTREAM-BUGS 17). |
-  | Pause | `Key_MediaPause`, `Key_Pause` | |
-  | Stop | `Key_MediaStop` | |
-  | Digits | `Key_0`..`Key_9` or keysym fallback (KEY_NUMERIC_*) | Later: letter jump. |
+  Measured on the BRIX (KWin 6.7.5, Qt 6.11.2) by injecting the evdev codes
+  fire-blaster emits (M0 spike 2):
 
-  `RemoteKeys` maps these to a small action enum before QML sees them, and
-  logs raw events when `EMBER_KEYS=1`. Long-press detection ignores
-  auto-repeat events (`QKeyEvent::isAutoRepeat()`) and times press to
+  | evdev code | Qt reports | Ember turns it into |
+  |---|---|---|
+  | KEY_ENTER | `Key_Return` (scan 36) | OK (acts on release; held 0.6 s is `Key_Menu`) |
+  | KEY_SELECT | `Key_Select` | OK |
+  | KEY_BACK | `Key_Back` (keysym XF86Back) | Back |
+  | KEY_ESC | `Key_Escape` | Back |
+  | KEY_INFO | `Key_unknown`, keysym `0x10081166` | `Key_Info` |
+  | KEY_CHANNELUP / DOWN | `Key_unknown`, keysym `0x10081192` / `0x10081193` | `Key_ChannelUp` / `Key_ChannelDown` |
+  | KEY_EPG | `Key_unknown`, keysym `0x1008116a` | `Key_Guide` |
+  | KEY_CONTEXT_MENU | `Key_unknown`, keysym `0x100811b6` | `Key_Menu` |
+  | KEY_COMPOSE (fire-blaster's Menu) | taken by Bigscreen on couchbox 0.9.0 ("Toggle Bigscreen Tasks Overview") | `Key_Menu` once couchbox frees it |
+  | KEY_HOMEPAGE | taken by Bigscreen on couchbox 0.9.0 ("Toggle Bigscreen Home Screen") | Home |
+  | KEY_PLAYPAUSE, PLAY, STOPCD, FASTFORWARD, REWIND, NEXTSONG, PREVIOUSSONG | never reach the app on couchbox 0.9.0 (Plasma's media keys) | handled through MPRIS meanwhile |
+  | KEY_PAUSE | `Key_Pause` | `Key_MediaPause` |
+  | KEY_NUMERIC_0..9 | `Key_0`..`Key_9` with text (keysym `0x10081200`+) | digits |
+  | KEY_PAGEUP / DOWN | `Key_PageUp` / `Key_PageDown` | page the list |
+  | KEY_RED / GREEN / YELLOW / BLUE | `Key_Red` .. `Key_Blue` | unused |
+  | KEY_SUBTITLE | `Key_Subtitle` | unused |
+
+  Holding a key auto-repeats after 600 ms at 25 Hz (`isAutoRepeat()` set).
+  Newer couchbox releases free Home Page, Menu and the media keys for apps
+  (couchbox-shortcuts); the BRIX's 0.9.0 predates that.
+
+  `RemoteKeys` (an application event filter) rewrites these into plain Qt
+  keys before QML sees them, and logs raw events when `EMBER_KEYS=1`.
+  Long-press detection ignores auto-repeat events and times press to
   release. Reference: `couchbox-iptv/lib/app/keys.dart`.
 - **Codec settings**: read `[Video] TranscodeHEVC, TranscodeHEVC10,
   TranscodeAV1, TranscodeVP9` from couchboxrc directly with KConfig.
@@ -473,7 +507,51 @@ the server, and continue to the next one, with Kodi left alone.
 - Commit subjects: plain imperative sentences.
 - `LICENSE`: GPL-3.0-only. `README.md` describing the app as built.
 
+## Findings
+
+- **Video plane under Qt works as planned**, with the basic render loop.
+  Wayland events for the plane's own proxies are dispatched on the GUI thread
+  by Qt (the plane warns if that changes). The port dropped HDR and uses
+  `wp_viewporter` instead of `wl_surface.set_buffer_scale`. No GLib was
+  needed: GLib sources became queued calls and `QTimer`s from the start.
+- **The plane is cheaper than stock mpv on the BRIX.** 1080p30 H.264 with
+  VA-API: about 21 % of one core for Ember, 6 % for KWin, one dropped frame
+  in 15 s after startup. Stock mpv 0.41 (`vo=gpu-next`) on the same clip
+  drops about 12 frames per second. couchbox's fast-scaling profile
+  (`PlezyScaling=fast`) applies to Ember too.
+- **Minimizing works**: KWin stops acknowledging frames and the plane backs
+  off to one present a second, then resumes.
+- **Browsing cost on the BRIX**: about 43 % of one core while scrolling
+  through a list at three rows a second (fanart and posters decoding);
+  300–320 MB resident.
+- **Jellyfin 12.2** rejects `X-Emby-Token` and `api_key` (401) and accepts
+  the `Authorization: MediaBrowser … Token=` header and `ApiKey=`. Item
+  images and static streams need no auth at all.
+- **Jellyfin keeps no resume point for items under 5 minutes**
+  (`MinResumeDurationSeconds`, default 300) and marks them played on stop.
+  The dev server lowers it to 30 s because its clips are short.
+- **Discovery** answers with the server's own idea of its address, which may
+  be on a network the box can't reach; Ember also tries the address the reply
+  came from. On the BRIX, discovery found both the dev server (over ZeroTier)
+  and the user's own server on the LAN.
+- **QML gotcha**: the QML compiler drops a bare read like `items.revision`
+  in a binding, and the dependency with it; use the value in the expression.
+
+## Not yet verified
+
+- A real remote (only injected key codes so far), and Home, Menu and the
+  media keys reaching the app on a current couchbox (the BRIX runs 0.9.0,
+  which gives them to Plasma).
+- Pause on minimize through couchbox-focus (not in 0.9.0); its MPRIS Pause
+  call itself works.
+- A real library on a real server (only the dev server has been used).
+- Trickplay thumbnails (the dev server has no trickplay images), media
+  segments (needs the Intro Skipper plugin), burned-in bitmap subtitles
+  during a transcode, HEVC 10-bit transcode on the NUC.
+- Hiding and re-showing the window (the plane is rebuilt on show; only
+  minimize was exercised).
+
 ## Open questions
 
-1. Jellyfin server version (decides whether 10.x quirks matter). Spike M0.3
-   answers it if nobody does first.
+1. ~~Jellyfin server version~~: the dev server runs 12.2.0; the user's
+   server version is still unknown.

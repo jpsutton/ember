@@ -46,7 +46,9 @@ whatever the server's metadata providers supplied.
 - **First start**: pick your server from the ones found on the network (or
   type its address), sign in with Quick Connect (or a user name and
   password), then choose which libraries the home menu shows.
-- **Home**: Up/Down move through the menu, OK opens a library, Left or Back
+- **Home**: Up/Down move through the menu (it stays still unless it holds
+  more than fits; Settings can pin the highlight instead), OK opens a
+  library, Left or Back
   opens its submenu (recently added, recently aired, in progress, genres,
   years, collections and so on). Recently added and Recently aired list the
   library's films or episodes, newest first; an episode a streaming service
@@ -55,8 +57,9 @@ whatever the server's metadata providers supplied.
   episodes (resuming where you left off). Info opens the item's details.
   Menu, or OK held for a moment, opens the context menu (play from the
   beginning, mark watched, go to the show). Left opens the view options
-  (sort, order, hide watched, list style); Right, when sorted by name,
-  opens the A–Z strip. Channel +/− page the list.
+  (sort, order, hide watched, list style). Right moves to the scroll bar,
+  where Up/Down page the list; Right again, when sorted by name, opens the
+  A–Z strip. Channel +/− page the list without leaving the rows.
 - **Playing**: OK or Play/Pause pauses, Left/Right seek, Up/Down and
   Channel +/− jump between chapters, Menu (or held OK) picks audio,
   subtitles and chapters, Info shows or hides the panel, Back or Stop ends

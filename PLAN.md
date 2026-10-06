@@ -93,8 +93,10 @@ see "Scaling" below. Particulars get tuned after implementation.
 - Left blade, 440 px wide, dark and translucent. Uppercase text menu, 80 px
   rows, right-aligned labels. Focused item in the highlight colour, others
   grey.
-- Highlight pinned at slot 4 with items scrolling under it (Amber default).
-  "Static" mode (highlight moves, list stays) is a setting.
+- Static by default (Amber's static vertical home): the items stay still,
+  starting on the third row, and the highlight moves; the list scrolls only
+  when there are more items than fit. A setting pins the highlight at slot 4
+  with the items scrolling under it instead.
 - Items: the libraries picked at sign-in, in server order, then Search and
   Settings.
 - **OK** opens the library's default listing (all items, sorted by name).
@@ -139,9 +141,11 @@ see "Scaling" below. Particulars get tuned after implementation.
   show, Go to season.
 - **Left** from a list opens the side blade (510 px): view type, sort by,
   order, hide watched, filter (genre, year), search in this library.
-- **Right** from a list (when sorted by name) opens an A-Z strip on the right
-  edge; Up/Down jumps letters.
-- **Channel Up/Down** page the list.
+- **Right** from a list moves to the scroll bar on its right edge (shown
+  when the list is longer than the screen); there Up/Down page the list and
+  Left, OK or Back return to it. Right again (or Right from a list that fits,
+  when sorted by name) opens the A-Z strip; Up/Down jump letters.
+- **Channel Up/Down** (and Page Up/Down) page the list from the rows too.
 
 Long-press OK lives in Ember, not in fire-blaster. A global long-OK in
 fire-blaster would delay OK in every app and would break Bigscreen's
@@ -409,7 +413,7 @@ with the remote only, and a second tile press raises the running copy.
 
 - `LibraryModel`, `MenuModel` from the picked libraries plus Search and
   Settings.
-- Vertical blade with pinned-slot (default) and static modes; submenus
+- Vertical blade with pinned-slot and static modes; submenus
   sliding in from the left.
 - Backgrounds: random backdrop per library, crossfade.
 

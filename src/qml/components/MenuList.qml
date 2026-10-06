@@ -4,14 +4,17 @@ import Ember
 
 // Amber's vertical text menu. By default the highlight stays at a fixed slot
 // and the items scroll under it; staticMode keeps the items still and moves
-// the highlight instead. barHighlight draws a solid bar (Amber's submenus)
-// rather than coloring the text (the main menu).
+// the highlight instead, scrolling only when they don't fit (then just
+// enough to keep the highlight in view). barHighlight draws a solid bar
+// (Amber's submenus) rather than coloring the text (the main menu).
 ListView {
     id: list
 
     property bool staticMode: false
     property bool barHighlight: false
     property int pinnedSlot: 3
+    // In staticMode, empty rows above the first item, as far as they fit.
+    property int staticOffset: 0
     property real rowHeight: Theme.px(80)
     property int fontSize: Theme.menuFont
     property string fontFamily: Theme.fontFamily
@@ -29,6 +32,7 @@ ListView {
     highlightRangeMode: staticMode ? ListView.NoHighlightRange : ListView.StrictlyEnforceRange
     preferredHighlightBegin: staticMode ? 0 : pinnedSlot * rowHeight
     preferredHighlightEnd: staticMode ? height : (pinnedSlot + 1) * rowHeight
+    topMargin: staticMode ? Math.max(0, Math.min(staticOffset * rowHeight, height - count * rowHeight)) : 0
     opacity: dimmed ? 0.35 : 1
     Behavior on opacity { NumberAnimation { duration: Theme.animation } }
 

@@ -158,6 +158,8 @@ FocusScope {
             height: parent.height - Theme.px(120)
             focus: true
             staticMode: EmberSettings.staticMenu
+            // Amber's static menu starts on its third row.
+            staticOffset: 2
             fontFamily: Theme.menuFontFamily
             model: page.menuItems
             dimmed: page.submenuOpen

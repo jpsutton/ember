@@ -17,6 +17,7 @@ qt_add_qml_module(ember_lib
     qml/components/DetailsPane.qml
     qml/components/ItemRow.qml
     qml/components/Keyboard.qml
+    qml/components/ListScrollBar.qml
     qml/components/MenuList.qml
     qml/components/PopupMenu.qml
     qml/components/StatusIcon.qml

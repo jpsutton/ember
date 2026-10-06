@@ -6,7 +6,8 @@ import Ember
 // Amber's list views: the list on the right third, the highlighted item's
 // details on the left, its fanart behind (or, in Simple List, three columns
 // of titles across the screen). OK opens folders and plays videos; Left
-// opens the view options; Right jumps by letter.
+// opens the view options; Right goes to the scroll bar, whose Up and Down
+// page the list, and on to the A-Z strip.
 FocusScope {
     id: page
 
@@ -28,8 +29,14 @@ FocusScope {
     readonly property bool simple: viewType === "simple"
     readonly property real rowHeight: viewType === "tall" ? Theme.px(58) : viewType === "big" ? Theme.px(110)
                                       : simple ? Theme.px(64) : Theme.px(72)
-    // The view that has the rows right now.
+    // The view that has the rows right now, how many rows it shows, and how
+    // far a page moves.
     readonly property Item view: simple ? grid : list
+    readonly property int visibleCount: simple ? grid.rows * 3 : list.rows
+    readonly property int pageStep: visibleCount
+    // The highlight shows while the scroll bar has focus too, since paging
+    // moves it.
+    readonly property bool rowsFocused: view.activeFocus || scrollBar.activeFocus
 
     // Re-read when any row changes. The revision has to be used in the
     // expression: the QML compiler drops a bare read, and the dependency
@@ -181,6 +188,21 @@ FocusScope {
         return sortable && items.sortBy === "SortName" && !items.descending && items.count > 0
     }
 
+    function pageBy(delta) {
+        if (view.count > 0) view.currentIndex = Math.max(0, Math.min(view.count - 1, view.currentIndex + delta))
+    }
+
+    // Right from the rows: the scroll bar when the list is longer than the
+    // screen, then (Right again) the A-Z strip.
+    function toScrollBar() {
+        if (scrollBar.visible) scrollBar.forceActiveFocus()
+        else openLetters()
+    }
+
+    function openLetters() {
+        if (canJumpByLetter()) alpha.open(current.sortName || current.name || "")
+    }
+
     // Keys both views share. |step| is how far a page moves.
     function handleKey(event, step) {
         switch (event.key) {
@@ -191,11 +213,11 @@ FocusScope {
             break
         case Qt.Key_PageDown:
         case Qt.Key_ChannelDown:
-            view.currentIndex = Math.min(view.count - 1, view.currentIndex + step)
+            pageBy(step)
             break
         case Qt.Key_PageUp:
         case Qt.Key_ChannelUp:
-            view.currentIndex = Math.max(0, view.currentIndex - step)
+            pageBy(-step)
             break
         case Qt.Key_Info:
             if (view.currentIndex >= 0 && current.type !== "Genre" && current.type !== "Year") {
@@ -270,6 +292,7 @@ FocusScope {
             anchors.topMargin: Theme.px(26)
             anchors.left: parent.left
             anchors.right: parent.right
+            anchors.rightMargin: scrollBar.visible ? Theme.px(26) : 0
             // Whole rows only: about 12 at the default size, 6 in Low List.
             readonly property int rows: page.viewType === "low" ? 6 : Math.floor(Theme.px(870) / page.rowHeight)
             height: page.rowHeight * rows
@@ -288,7 +311,7 @@ FocusScope {
                 id: row
                 required property int index
                 required property var item
-                readonly property bool isCurrent: ListView.isCurrentItem && list.activeFocus
+                readonly property bool isCurrent: ListView.isCurrentItem && page.rowsFocused
                 width: list.width
                 height: page.rowHeight
                 sourceComponent: page.viewType === "big" ? bigRow : plainRow
@@ -317,12 +340,12 @@ FocusScope {
             }
 
             Keys.onPressed: (event) => {
-                if (page.handleKey(event, 10)) return
+                if (page.handleKey(event, page.pageStep)) return
                 if (event.key === Qt.Key_Left) {
                     page.viewOptions()
                     event.accepted = true
                 } else if (event.key === Qt.Key_Right) {
-                    if (page.canJumpByLetter()) alpha.open(page.current.sortName || page.current.name || "")
+                    page.toScrollBar()
                     event.accepted = true
                 }
             }
@@ -355,7 +378,7 @@ FocusScope {
                 id: cell
                 required property int index
                 required property var item
-                readonly property bool isCurrent: GridView.isCurrentItem && grid.activeFocus
+                readonly property bool isCurrent: GridView.isCurrentItem && page.rowsFocused
                 width: grid.cellWidth
                 height: grid.cellHeight
                 ItemRow {
@@ -370,16 +393,20 @@ FocusScope {
             }
 
             Keys.onPressed: (event) => {
-                if (page.handleKey(event, rows)) return
+                if (page.handleKey(event, page.pageStep)) return
                 if (event.key === Qt.Key_Left) {
                     // From the first column, Left opens the view options.
                     if (currentIndex < rows) page.viewOptions()
                     else moveCurrentIndexLeft()
                     event.accepted = true
                 } else if (event.key === Qt.Key_Right) {
-                    // From the last column, Right opens the A-Z strip.
-                    if (currentIndex + rows >= count) {
-                        if (page.canJumpByLetter()) alpha.open(page.current.sortName || page.current.name || "")
+                    // From the right-hand column on screen, Right goes to the
+                    // scroll bar (Down at the foot of a column moves on to
+                    // the next).
+                    const column = Math.floor(currentIndex / rows)
+                    const firstColumn = Math.round((contentX - originX) / cellWidth)
+                    if (column >= firstColumn + 2 || currentIndex + rows >= count) {
+                        page.toScrollBar()
                     } else {
                         moveCurrentIndexRight()
                     }
@@ -401,7 +428,25 @@ FocusScope {
             color: items.errorString !== "" ? Theme.error : Theme.dim
         }
 
-        // A-Z strip on the right edge (Right from the list).
+        ListScrollBar {
+            id: scrollBar
+            anchors.right: parent.right
+            anchors.rightMargin: Theme.px(8)
+            anchors.top: page.view.top
+            height: page.view.height
+            visible: items.totalCount > page.visibleCount
+            total: items.totalCount
+            first: page.simple ? Math.round((grid.contentX - grid.originX) / grid.cellWidth) * grid.rows
+                               : Math.round((list.contentY - list.originY) / page.rowHeight)
+            visibleRows: page.visibleCount
+            onPageUp: page.pageBy(-page.pageStep)
+            onPageDown: page.pageBy(page.pageStep)
+            onLeave: page.view.forceActiveFocus()
+            onNext: page.openLetters()
+        }
+
+        // A-Z strip on the right edge (Right from the scroll bar, or from the
+        // list when it fits on screen).
         FocusScope {
             id: alpha
             anchors.right: parent.right

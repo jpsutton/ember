@@ -77,9 +77,12 @@ FocusScope {
     // Random fanart from the focused library, changing every 20 s.
     ItemListModel {
         id: fanart
+        // Collections have no fanart of their own; use any film's.
+        readonly property bool collections: page.focused.kind === "library" && page.focused.library.collectionType === "boxsets"
         mode: "items"
-        parentId: page.focused.kind === "library" ? page.focused.library.id : ""
-        includeTypes: page.focused.kind === "library" ? (page.app.libraryTypes(page.focused.library.collectionType) || "Movie,Series") : "Movie,Series"
+        parentId: page.focused.kind === "library" && !collections ? page.focused.library.id : ""
+        includeTypes: page.focused.kind === "library" && !collections
+                      ? (page.app.libraryTypes(page.focused.library.collectionType) || "Movie,Series") : "Movie,Series"
         recursive: true
         sortBy: "Random"
         onLoaded: backdropTimer.pick()
@@ -168,7 +171,7 @@ FocusScope {
         anchors.rightMargin: Theme.px(60)
         anchors.top: clock.bottom
         anchors.topMargin: Theme.px(6)
-        visible: page.focused.kind === "library" && fanart.totalCount > 0
+        visible: page.focused.kind === "library" && fanart.totalCount > 0 && !fanart.collections
         text: (page.focused.title || "").toUpperCase() + "  " + fanart.totalCount
         font.family: Theme.fontFamily
         font.pixelSize: Theme.smallFont
@@ -188,11 +191,13 @@ FocusScope {
         visible: x > -width
         Behavior on x { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
 
+        // Short submenus sit in the middle of the screen, as in Amber.
         MenuList {
             id: submenu
-            anchors.fill: parent
-            anchors.topMargin: Theme.px(60)
-            anchors.bottomMargin: Theme.px(60)
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            height: Math.min(parent.height - Theme.px(120), rowHeight * count)
             staticMode: true
             barHighlight: true
             rowHeight: Theme.px(64)

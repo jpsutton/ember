@@ -13,8 +13,10 @@ Item {
     property int unplayedCount: 0
     property real progress: 0
     property bool current: false
+    // Tall List: smaller type for shorter rows.
+    property bool compact: false
 
-    implicitHeight: Theme.px(72)
+    implicitHeight: compact ? Theme.px(58) : Theme.px(72)
 
     Rectangle {
         anchors.fill: parent
@@ -32,7 +34,7 @@ Item {
         elide: Text.ElideRight
         text: row.title
         font.family: Theme.fontFamily
-        font.pixelSize: Theme.rowFont
+        font.pixelSize: row.compact ? Theme.px(25) : Theme.rowFont
         font.bold: row.current
         color: row.current ? Theme.highlightText : Theme.text
     }

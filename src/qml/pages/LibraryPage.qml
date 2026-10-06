@@ -42,22 +42,35 @@ FocusScope {
     }
     property string restoreId
 
+    // Amber's list styles: "list" (List), "tall" (Tall List: more, smaller
+    // rows), "big" (Big List: two-line rows with a poster).
+    property string viewType: "list"
+    readonly property real rowHeight: viewType === "tall" ? Theme.px(58) : viewType === "big" ? Theme.px(110) : Theme.px(72)
+
     Component.onCompleted: {
         for (const key in query) items[key] = query[key]
-        if (viewKey !== "" && sortable) {
+        // The list style is remembered per library, with a default for the
+        // rest (seasons, episodes, genres).
+        const defaults = ViewSettings.load("default")
+        if (defaults.viewType) viewType = defaults.viewType
+        if (viewKey !== "") {
             const saved = ViewSettings.load(viewKey)
-            if (saved.sortBy) items.sortBy = saved.sortBy
-            if (saved.descending !== undefined) items.descending = saved.descending === "true"
-            if (saved.hideWatched !== undefined) items.hideWatched = saved.hideWatched === "true"
+            if (saved.viewType) viewType = saved.viewType
+            if (sortable) {
+                if (saved.sortBy) items.sortBy = saved.sortBy
+                if (saved.descending !== undefined) items.descending = saved.descending === "true"
+                if (saved.hideWatched !== undefined) items.hideWatched = saved.hideWatched === "true"
+            }
         }
     }
 
     function saveView() {
         // Stay on the same item when the order changes.
         restoreId = current.id || ""
-        if (viewKey === "") return
-        ViewSettings.save(viewKey, { sortBy: items.sortBy, descending: String(items.descending),
-                                      hideWatched: String(items.hideWatched) })
+        ViewSettings.save(viewKey !== "" ? viewKey : "default", sortable
+            ? { sortBy: items.sortBy, descending: String(items.descending),
+                hideWatched: String(items.hideWatched), viewType: viewType }
+            : { viewType: viewType })
     }
 
     // When the page shows again: reload if the server's library changed
@@ -115,6 +128,11 @@ FocusScope {
             ["SortName", qsTr("Name")], ["DateCreated", qsTr("Date added")], ["PremiereDate", qsTr("Release date")],
             ["CommunityRating", qsTr("Rating")], ["Runtime", qsTr("Runtime")], ["Random", qsTr("Random")]
         ]
+        const views = [["list", qsTr("List")], ["tall", qsTr("Tall list")], ["big", qsTr("Big list")]]
+        add(qsTr("View"), (views.find(v => v[0] === page.viewType) || views[0])[1], () => {
+            page.app.menu.open(qsTr("View"), views.map(v => ({ title: v[1], checked: v[0] === page.viewType })),
+                               (i) => { page.viewType = views[i][0]; page.saveView() }, "left")
+        })
         if (sortable) {
             const currentSort = sorts.find(s => s[0] === items.sortBy) || sorts[0]
             add(qsTr("Sort by"), currentSort[1], () => {
@@ -186,7 +204,9 @@ FocusScope {
             anchors.topMargin: Theme.px(26)
             anchors.left: parent.left
             anchors.right: parent.right
-            height: Theme.px(72) * 12
+            // Whole rows only: about 12 at the default size.
+            readonly property int rows: Math.floor(Theme.px(870) / page.rowHeight)
+            height: page.rowHeight * rows
             clip: true
             focus: true
             model: items
@@ -194,20 +214,40 @@ FocusScope {
             boundsBehavior: Flickable.StopAtBounds
             highlightMoveDuration: 0
             highlightRangeMode: EmberSettings.centeredListFocus ? ListView.StrictlyEnforceRange : ListView.ApplyRange
-            preferredHighlightBegin: EmberSettings.centeredListFocus ? Theme.px(72) * 5 : Theme.px(72) * 2
-            preferredHighlightEnd: EmberSettings.centeredListFocus ? Theme.px(72) * 6 : Theme.px(72) * 10
-            cacheBuffer: Theme.px(72) * 12
+            preferredHighlightBegin: page.rowHeight * (EmberSettings.centeredListFocus ? Math.floor(rows / 2) : 2)
+            preferredHighlightEnd: page.rowHeight * (EmberSettings.centeredListFocus ? Math.floor(rows / 2) + 1 : rows - 2)
+            cacheBuffer: height
 
-            delegate: ItemRow {
+            delegate: Loader {
+                id: row
                 required property int index
                 required property var item
+                readonly property bool isCurrent: ListView.isCurrentItem && list.activeFocus
                 width: list.width
-                current: ListView.isCurrentItem && list.activeFocus
-                title: page.rowTitle(item)
-                label2: page.label2(item)
-                status: item.status
-                unplayedCount: item.unplayedCount
-                progress: item.playedPercentage
+                height: page.rowHeight
+                sourceComponent: page.viewType === "big" ? bigRow : plainRow
+            }
+
+            Component {
+                id: plainRow
+                ItemRow {
+                    current: parent.isCurrent
+                    compact: page.viewType === "tall"
+                    title: page.rowTitle(parent.item)
+                    label2: page.label2(parent.item)
+                    status: parent.item.status
+                    unplayedCount: parent.item.unplayedCount
+                    progress: parent.item.playedPercentage
+                }
+            }
+
+            Component {
+                id: bigRow
+                BigRow {
+                    current: parent.isCurrent
+                    item: parent.item
+                    title: page.rowTitle(parent.item)
+                }
             }
 
             Keys.onReturnPressed: page.open()

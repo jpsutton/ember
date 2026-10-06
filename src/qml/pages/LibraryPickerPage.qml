@@ -34,7 +34,7 @@ FocusScope {
             color: Theme.text
         }
         Text {
-            text: qsTr("Choose what the home menu shows. OK switches a library on or off.")
+            text: qsTr("Choose what the home menu shows. OK switches a library on or off; Menu moves it.")
             font.family: Theme.fontFamily
             font.pixelSize: Theme.bodyFont
             color: Theme.dim
@@ -74,6 +74,18 @@ FocusScope {
                     font.bold: row.current || row.modelData.id === ""
                     color: row.current ? Theme.highlightText : Theme.text
                 }
+            }
+            Keys.onPressed: (event) => {
+                if (event.key !== Qt.Key_Menu) return
+                event.accepted = true
+                const row = page.rows[currentIndex]
+                if (row.id === "") return
+                const index = currentIndex
+                page.app.menu.open(row.title, [{ title: qsTr("Move up") }, { title: qsTr("Move down") }], (choice) => {
+                    const delta = choice === 0 ? -1 : 1
+                    Session.moveLibrary(row.id, delta)
+                    list.currentIndex = Math.max(0, Math.min(Session.libraries.length - 1, index + delta))
+                })
             }
             Keys.onReturnPressed: {
                 const row = page.rows[currentIndex]

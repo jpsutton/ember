@@ -94,6 +94,8 @@ class Session : public QObject {
   Q_INVOKABLE void signOut();
   Q_INVOKABLE void refreshLibraries();
   Q_INVOKABLE void setLibraryShown(const QString& id, bool shown);
+  // Moves a library up (-1) or down (+1) in the home menu.
+  Q_INVOKABLE void moveLibrary(const QString& id, int delta);
   // Saves the picker's choice.
   Q_INVOKABLE void confirmLibraries();
   Q_INVOKABLE void clearError() { setError(QString()); }

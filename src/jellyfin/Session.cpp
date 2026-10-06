@@ -466,6 +466,9 @@ QCoro::Task<> Session::refreshLibrariesTask() {
     if (!library.shown) hidden.append(library.id);
   }
   if (libraries_.isEmpty()) hidden = hidden_library_ids_;
+  // Keep the user's order; libraries new to us go at the end, in server order.
+  QStringList order;
+  for (const Library& library : libraries_) order.append(library.id);
   QList<Library> fresh;
   for (const QJsonValue& value : reply.object().value(QStringLiteral("Items")).toArray()) {
     const QJsonObject view = value.toObject();
@@ -474,6 +477,11 @@ QCoro::Task<> Session::refreshLibrariesTask() {
     const QString id = view.value(QStringLiteral("Id")).toString();
     fresh.append({id, view.value(QStringLiteral("Name")).toString(), type, !hidden.contains(id)});
   }
+  std::stable_sort(fresh.begin(), fresh.end(), [&order](const Library& a, const Library& b) {
+    const qsizetype ia = order.indexOf(a.id);
+    const qsizetype ib = order.indexOf(b.id);
+    return (ia < 0 ? order.size() : ia) < (ib < 0 ? order.size() : ib);
+  });
   libraries_ = fresh;
   save();
   emit librariesChanged();
@@ -485,6 +493,18 @@ void Session::setLibraryShown(const QString& id, bool shown) {
       library.shown = shown;
       emit librariesChanged();
     }
+  }
+}
+
+void Session::moveLibrary(const QString& id, int delta) {
+  for (qsizetype i = 0; i < libraries_.size(); ++i) {
+    if (libraries_[i].id != id) continue;
+    const qsizetype target = i + delta;
+    if (target < 0 || target >= libraries_.size()) return;
+    libraries_.move(i, target);
+    save();
+    emit librariesChanged();
+    return;
   }
 }
 

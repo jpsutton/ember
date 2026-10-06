@@ -130,6 +130,9 @@ FocusScope {
         const continuing = skipBadgeTimer.running && skipForward === forward
         const base = continuing && skipTarget >= 0 ? skipTarget : playback.position
         const target = Math.max(0, Math.min(playback.duration - 1, base + seconds))
+        // At either end, a fresh run has nothing to announce; a run already
+        // showing stays up at its total.
+        if (!continuing && Math.round(Math.abs(target - base)) === 0) return
         skipTotal = (continuing ? skipTotal : 0) + Math.abs(target - base)
         skipForward = forward
         skipTarget = target
@@ -375,10 +378,8 @@ FocusScope {
     Row {
         id: skipBadge
         anchors.verticalCenter: parent.verticalCenter
-        anchors.right: page.skipForward ? parent.right : undefined
-        anchors.left: page.skipForward ? undefined : parent.left
-        anchors.rightMargin: Theme.px(96)
-        anchors.leftMargin: Theme.px(96)
+        // Placed by x: anchors swapped from one side to the other stay put.
+        x: page.skipForward ? parent.width - width - Theme.px(96) : Theme.px(96)
         // The chevron sits on the outer side.
         layoutDirection: page.skipForward ? Qt.LeftToRight : Qt.RightToLeft
         spacing: Theme.px(12)

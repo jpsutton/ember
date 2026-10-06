@@ -525,6 +525,10 @@ the server, and continue to the next one, with Kodi left alone.
 - **Browsing cost on the BRIX**: about 43 % of one core while scrolling
   through a list at three rows a second (fanart and posters decoding);
   300–320 MB resident.
+- **A 1,200-item library** (generated, no artwork) pages smoothly on the
+  BRIX: 12 page-downs in 8 s cost about 8 % of one core, pages of 100 load
+  as the list reaches them, and the A–Z strip jumps to rows not loaded yet
+  (M3's "done when").
 - **Jellyfin 12.2** rejects `X-Emby-Token` and `api_key` (401) and accepts
   the `Authorization: MediaBrowser … Token=` header and `ApiKey=`. Item
   images and static streams need no auth at all.

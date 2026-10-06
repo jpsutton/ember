@@ -250,7 +250,11 @@ FocusScope {
                 }
             }
 
-            Keys.onReturnPressed: page.open()
+            // OK on an empty list that failed to load tries again.
+            Keys.onReturnPressed: {
+                if (count === 0 && items.errorString !== "") items.reload()
+                else page.open()
+            }
             Keys.onPressed: (event) => {
                 switch (event.key) {
                 case Qt.Key_PageDown:
@@ -294,7 +298,8 @@ FocusScope {
             width: list.width - Theme.px(60)
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
-            text: items.loading ? qsTr("Loading…") : (items.errorString !== "" ? items.errorString : qsTr("Nothing here."))
+            text: items.loading ? qsTr("Loading…")
+                  : (items.errorString !== "" ? items.errorString + "\n" + qsTr("OK tries again.") : qsTr("Nothing here."))
             font.family: Theme.fontFamily
             font.pixelSize: Theme.bodyFont
             color: items.errorString !== "" ? Theme.error : Theme.dim

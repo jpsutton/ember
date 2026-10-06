@@ -3,9 +3,10 @@ import QtQuick
 import QtQuick.Controls
 import Ember
 
-// Amber's List view: the list on the right third, the highlighted item's
-// details on the left, its fanart behind. OK opens folders and plays
-// videos; Left opens the view options; Right jumps by letter.
+// Amber's list views: the list on the right third, the highlighted item's
+// details on the left, its fanart behind (or, in Simple List, three columns
+// of titles across the screen). OK opens folders and plays videos; Left
+// opens the view options; Right jumps by letter.
 FocusScope {
     id: page
 
@@ -15,11 +16,25 @@ FocusScope {
     property var context: ({})
     // The item last played from here, refreshed when the player closes.
     property string playedId
+    property string restoreId
+
+    // Amber's list styles:
+    //   list    List: 12 rows beside the details
+    //   low     Low List: 6 rows at the bottom, more of the fanart showing
+    //   tall    Tall List: more, smaller rows
+    //   big     Big List: two-line rows with a poster
+    //   simple  Simple List: three columns of titles, no details
+    property string viewType: "list"
+    readonly property bool simple: viewType === "simple"
+    readonly property real rowHeight: viewType === "tall" ? Theme.px(58) : viewType === "big" ? Theme.px(110)
+                                      : simple ? Theme.px(64) : Theme.px(72)
+    // The view that has the rows right now.
+    readonly property Item view: simple ? grid : list
 
     // Re-read when any row changes. The revision has to be used in the
     // expression: the QML compiler drops a bare read, and the dependency
     // with it.
-    readonly property var current: items.revision >= 0 && list.currentIndex >= 0 ? items.get(list.currentIndex) : ({})
+    readonly property var current: items.revision >= 0 && view.currentIndex >= 0 ? items.get(view.currentIndex) : ({})
     readonly property bool sortable: items.mode === "items" && !context.fixedSort
     readonly property string viewKey: context.viewKey || ""
 
@@ -34,18 +49,12 @@ FocusScope {
             }
             if (page.restoreId !== "") {
                 const index = indexOfId(page.restoreId)
-                if (index >= 0) list.currentIndex = index
+                if (index >= 0) page.view.currentIndex = index
                 page.restoreId = ""
             }
         }
-        onLetterFound: (index) => list.currentIndex = index
+        onLetterFound: (index) => page.view.currentIndex = index
     }
-    property string restoreId
-
-    // Amber's list styles: "list" (List), "tall" (Tall List: more, smaller
-    // rows), "big" (Big List: two-line rows with a poster).
-    property string viewType: "list"
-    readonly property real rowHeight: viewType === "tall" ? Theme.px(58) : viewType === "big" ? Theme.px(110) : Theme.px(72)
 
     Component.onCompleted: {
         for (const key in query) items[key] = query[key]
@@ -64,9 +73,26 @@ FocusScope {
         }
     }
 
-    function saveView() {
-        // Stay on the same item when the order changes.
+    // Changes the list style, keeping the highlighted item.
+    function setViewType(type) {
+        const id = current.id || ""
+        viewType = type
+        saveView()
+        // After the views have swapped models.
+        Qt.callLater(() => {
+            page.view.currentIndex = Math.max(0, items.indexOfId(id))
+            page.view.forceActiveFocus()
+        })
+    }
+
+    // Re-sorts or re-filters, keeping the highlighted item when it stays.
+    function requery(change) {
         restoreId = current.id || ""
+        change()
+        saveView()
+    }
+
+    function saveView() {
         ViewSettings.save(viewKey !== "" ? viewKey : "default", sortable
             ? { sortBy: items.sortBy, descending: String(items.descending),
                 hideWatched: String(items.hideWatched), viewType: viewType }
@@ -113,7 +139,7 @@ FocusScope {
     }
 
     function open() {
-        if (list.currentIndex < 0) return
+        if (view.currentIndex < 0) return
         const item = current
         if (item.playable) page.playedId = item.id
         if (item.type === "Series" || item.type === "Season") page.playedId = item.id
@@ -128,57 +154,95 @@ FocusScope {
             ["SortName", qsTr("Name")], ["DateCreated", qsTr("Date added")], ["PremiereDate", qsTr("Release date")],
             ["CommunityRating", qsTr("Rating")], ["Runtime", qsTr("Runtime")], ["Random", qsTr("Random")]
         ]
-        const views = [["list", qsTr("List")], ["tall", qsTr("Tall list")], ["big", qsTr("Big list")]]
+        const views = [["list", qsTr("List")], ["low", qsTr("Low list")], ["tall", qsTr("Tall list")],
+                       ["big", qsTr("Big list")], ["simple", qsTr("Simple list")]]
         add(qsTr("View"), (views.find(v => v[0] === page.viewType) || views[0])[1], () => {
             page.app.menu.open(qsTr("View"), views.map(v => ({ title: v[1], checked: v[0] === page.viewType })),
-                               (i) => { page.viewType = views[i][0]; page.saveView() }, "left")
+                               (i) => page.setViewType(views[i][0]), "left")
         })
         if (sortable) {
             const currentSort = sorts.find(s => s[0] === items.sortBy) || sorts[0]
             add(qsTr("Sort by"), currentSort[1], () => {
                 page.app.menu.open(qsTr("Sort by"), sorts.map(s => ({ title: s[1], checked: s[0] === items.sortBy })),
-                                   (i) => { items.sortBy = sorts[i][0]; page.saveView() }, "left")
+                                   (i) => page.requery(() => items.sortBy = sorts[i][0]), "left")
             })
-            add(qsTr("Order"), items.descending ? qsTr("Descending") : qsTr("Ascending"), () => {
-                items.descending = !items.descending
-                page.saveView()
-            })
-            add(qsTr("Hide watched"), items.hideWatched ? qsTr("On") : qsTr("Off"), () => {
-                items.hideWatched = !items.hideWatched
-                page.saveView()
-            })
+            add(qsTr("Order"), items.descending ? qsTr("Descending") : qsTr("Ascending"),
+                () => page.requery(() => items.descending = !items.descending))
+            add(qsTr("Hide watched"), items.hideWatched ? qsTr("On") : qsTr("Off"),
+                () => page.requery(() => items.hideWatched = !items.hideWatched))
         }
         add(qsTr("Search"), "", () => page.app.stack.push(page.app.searchPageComponent))
         add(qsTr("Home"), "", () => page.app.goHome())
         page.app.menu.open(qsTr("View options"), options, (i) => actions[i](), "left", 0)
     }
 
+    function canJumpByLetter() {
+        return sortable && items.sortBy === "SortName" && !items.descending && items.count > 0
+    }
+
+    // Keys both views share. |step| is how far a page moves.
+    function handleKey(event, step) {
+        switch (event.key) {
+        case Qt.Key_Return:
+            // OK on an empty list that failed to load tries again.
+            if (view.count === 0 && items.errorString !== "") items.reload()
+            else open()
+            break
+        case Qt.Key_PageDown:
+        case Qt.Key_ChannelDown:
+            view.currentIndex = Math.min(view.count - 1, view.currentIndex + step)
+            break
+        case Qt.Key_PageUp:
+        case Qt.Key_ChannelUp:
+            view.currentIndex = Math.max(0, view.currentIndex - step)
+            break
+        case Qt.Key_Info:
+            if (view.currentIndex >= 0 && current.type !== "Genre" && current.type !== "Year") {
+                app.openInfo(current, context)
+            }
+            break
+        case Qt.Key_Menu:
+            if (view.currentIndex >= 0) app.itemMenu(current, items, context)
+            break
+        case Qt.Key_MediaTogglePlayPause:
+        case Qt.Key_MediaPlay:
+            if (current.playable) { playedId = current.id; app.play(current, false) }
+            break
+        default:
+            return false
+        }
+        event.accepted = true
+        return true
+    }
+
     Backdrop {
         anchors.fill: parent
         source: page.current.backdrop || (page.context.series ? page.context.series.backdrop || "" : "")
-        dim: 0.62
+        dim: page.simple ? 0.82 : page.viewType === "low" ? 0.45 : 0.62
     }
 
     DetailsPane {
         x: Theme.px(70)
-        y: Theme.px(56)
+        y: page.viewType === "low" ? parent.height - Theme.px(770) : Theme.px(56)
         width: Theme.px(1150)
-        height: parent.height - Theme.px(110)
+        height: parent.height - y - Theme.px(54)
         item: page.current
-        visible: list.count > 0
+        visible: !page.simple && page.view.count > 0
     }
 
     Rectangle {
         id: panel
-        x: Theme.px(1290)
+        x: page.simple ? 0 : Theme.px(1290)
         width: parent.width - x
-        height: parent.height
+        // Low List keeps the panel to the bottom part of the screen.
+        y: page.viewType === "low" ? parent.height - height : 0
+        height: page.viewType === "low" ? header.y + header.height + Theme.px(26) + list.height + Theme.px(30) : parent.height
         color: Theme.panel
 
         Text {
             id: header
             x: Theme.px(24)
-            y: Theme.px(40)
+            y: page.viewType === "low" ? Theme.px(24) : Theme.px(40)
             width: parent.width - Theme.px(48)
             text: page.title.toUpperCase()
             elide: Text.ElideRight
@@ -192,7 +256,7 @@ FocusScope {
             anchors.right: parent.right
             anchors.rightMargin: Theme.px(24)
             anchors.baseline: header.baseline
-            text: list.count > 0 ? (list.currentIndex + 1) + " / " + items.totalCount : ""
+            text: page.view.count > 0 ? (page.view.currentIndex + 1) + " / " + items.totalCount : ""
             font.family: Theme.fontFamily
             font.pixelSize: Theme.smallFont
             color: Theme.dim
@@ -200,22 +264,23 @@ FocusScope {
 
         ListView {
             id: list
+            visible: !page.simple
             anchors.top: header.bottom
             anchors.topMargin: Theme.px(26)
             anchors.left: parent.left
             anchors.right: parent.right
-            // Whole rows only: about 12 at the default size.
-            readonly property int rows: Math.floor(Theme.px(870) / page.rowHeight)
+            // Whole rows only: about 12 at the default size, 6 in Low List.
+            readonly property int rows: page.viewType === "low" ? 6 : Math.floor(Theme.px(870) / page.rowHeight)
             height: page.rowHeight * rows
             clip: true
-            focus: true
-            model: items
+            focus: !page.simple
+            model: page.simple ? null : items
             keyNavigationWraps: true
             boundsBehavior: Flickable.StopAtBounds
             highlightMoveDuration: 0
             highlightRangeMode: EmberSettings.centeredListFocus ? ListView.StrictlyEnforceRange : ListView.ApplyRange
-            preferredHighlightBegin: page.rowHeight * (EmberSettings.centeredListFocus ? Math.floor(rows / 2) : 2)
-            preferredHighlightEnd: page.rowHeight * (EmberSettings.centeredListFocus ? Math.floor(rows / 2) + 1 : rows - 2)
+            preferredHighlightBegin: page.rowHeight * (EmberSettings.centeredListFocus ? Math.floor(rows / 2) : Math.min(2, rows - 1))
+            preferredHighlightEnd: page.rowHeight * (EmberSettings.centeredListFocus ? Math.floor(rows / 2) + 1 : Math.max(rows - 2, 1))
             cacheBuffer: height
 
             delegate: Loader {
@@ -250,51 +315,81 @@ FocusScope {
                 }
             }
 
-            // OK on an empty list that failed to load tries again.
-            Keys.onReturnPressed: {
-                if (count === 0 && items.errorString !== "") items.reload()
-                else page.open()
-            }
             Keys.onPressed: (event) => {
-                switch (event.key) {
-                case Qt.Key_PageDown:
-                case Qt.Key_ChannelDown:
-                    currentIndex = Math.min(count - 1, currentIndex + 10)
-                    break
-                case Qt.Key_PageUp:
-                case Qt.Key_ChannelUp:
-                    currentIndex = Math.max(0, currentIndex - 10)
-                    break
-                case Qt.Key_Info:
-                    if (currentIndex >= 0 && page.current.type !== "Genre" && page.current.type !== "Year") {
-                        page.app.openInfo(page.current, page.context)
-                    }
-                    break
-                case Qt.Key_Menu:
-                    if (currentIndex >= 0) page.app.itemMenu(page.current, items, page.context)
-                    break
-                case Qt.Key_Left:
+                if (page.handleKey(event, 10)) return
+                if (event.key === Qt.Key_Left) {
                     page.viewOptions()
-                    break
-                case Qt.Key_Right:
-                    if (page.sortable && items.sortBy === "SortName" && !items.descending && count > 0) {
-                        alpha.open(page.current.sortName || page.current.name || "")
-                    }
-                    break
-                case Qt.Key_MediaTogglePlayPause:
-                case Qt.Key_MediaPlay:
-                    if (page.current.playable) { page.playedId = page.current.id; page.app.play(page.current, false) }
-                    break
-                default:
-                    return
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Right) {
+                    if (page.canJumpByLetter()) alpha.open(page.current.sortName || page.current.name || "")
+                    event.accepted = true
                 }
-                event.accepted = true
+            }
+        }
+
+        // Simple List: three columns, filled top to bottom.
+        GridView {
+            id: grid
+            visible: page.simple
+            anchors.top: header.bottom
+            anchors.topMargin: Theme.px(26)
+            anchors.left: parent.left
+            anchors.leftMargin: Theme.px(40)
+            anchors.right: parent.right
+            anchors.rightMargin: Theme.px(110)
+            readonly property int rows: Math.floor(Theme.px(900) / page.rowHeight)
+            height: page.rowHeight * rows
+            flow: GridView.FlowTopToBottom
+            cellWidth: width / 3
+            cellHeight: page.rowHeight
+            clip: true
+            focus: page.simple
+            model: page.simple ? items : null
+            keyNavigationWraps: false
+            boundsBehavior: Flickable.StopAtBounds
+            highlightMoveDuration: 0
+            cacheBuffer: width
+
+            delegate: Item {
+                id: cell
+                required property int index
+                required property var item
+                readonly property bool isCurrent: GridView.isCurrentItem && grid.activeFocus
+                width: grid.cellWidth
+                height: grid.cellHeight
+                ItemRow {
+                    anchors.fill: parent
+                    anchors.rightMargin: Theme.px(16)
+                    current: cell.isCurrent
+                    title: page.rowTitle(cell.item)
+                    status: cell.item.status
+                    unplayedCount: cell.item.unplayedCount
+                    progress: cell.item.playedPercentage
+                }
+            }
+
+            Keys.onPressed: (event) => {
+                if (page.handleKey(event, rows)) return
+                if (event.key === Qt.Key_Left) {
+                    // From the first column, Left opens the view options.
+                    if (currentIndex < rows) page.viewOptions()
+                    else moveCurrentIndexLeft()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Right) {
+                    // From the last column, Right opens the A-Z strip.
+                    if (currentIndex + rows >= count) {
+                        if (page.canJumpByLetter()) alpha.open(page.current.sortName || page.current.name || "")
+                    } else {
+                        moveCurrentIndexRight()
+                    }
+                    event.accepted = true
+                }
             }
         }
 
         Text {
-            anchors.centerIn: list
-            visible: list.count === 0
+            anchors.centerIn: page.view
+            visible: page.view.count === 0
             width: list.width - Theme.px(60)
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
@@ -309,9 +404,9 @@ FocusScope {
         FocusScope {
             id: alpha
             anchors.right: parent.right
-            anchors.top: list.top
+            anchors.top: page.view.top
             width: Theme.px(70)
-            height: list.height
+            height: page.view.height
             visible: activeFocus
 
             readonly property var letters: "#ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("")
@@ -348,7 +443,7 @@ FocusScope {
                     items.findLetter(letters[index])
                 } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Back || event.key === Qt.Key_Return
                            || event.key === Qt.Key_Right) {
-                    list.forceActiveFocus()
+                    page.view.forceActiveFocus()
                 }
                 event.accepted = true
             }

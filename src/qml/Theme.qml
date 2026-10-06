@@ -22,6 +22,12 @@ QtObject {
     readonly property color scrim: "#b3000000"
     readonly property color panel: "#cc15161b"
     readonly property color error: "#ff7a6b"
+    // Live TV: the guide's now line, and its cell tints (white over the
+    // page: rows, the focused row, cells with no information).
+    readonly property color live: "#e53935"
+    readonly property color cell: "#1affffff"
+    readonly property color cellFocusRow: "#3dffffff"
+    readonly property color cellEmpty: "#0affffff"
 
     // Amber's "Default no caps" fontset: Ubuntu Condensed, with Bebas Neue
     // (capitals only) for the home menu.

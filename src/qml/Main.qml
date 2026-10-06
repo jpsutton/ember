@@ -134,6 +134,17 @@ Window {
         }, "left")
     }
 
+    // The channel guide, when the server has Live TV.
+    function liveTvAvailable() {
+        return Session.libraries.some(l => l.collectionType === "livetv")
+    }
+
+    function openLiveTv() {
+        const top = stack.currentItem
+        if (top && top.objectName === "livetv") return
+        stack.push(liveTvPage)
+    }
+
     function goHome() {
         if (Session.state === Session.SignedIn && Session.librariesChosen && stack.depth > 1) stack.pop(null)
     }
@@ -311,6 +322,10 @@ Window {
             } else if (event.key === Qt.Key_HomePage) {
                 window.goHome()
                 event.accepted = true
+            } else if (event.key === Qt.Key_Guide && Session.state === Session.SignedIn
+                       && Session.librariesChosen && window.liveTvAvailable()) {
+                window.openLiveTv()
+                event.accepted = true
             }
         }
     }
@@ -324,6 +339,7 @@ Window {
     Component { id: playerPage; PlayerPage { app: window } }
     Component { id: settingsPage; SettingsPage { app: window } }
     Component { id: searchPage; SearchPage { app: window } }
+    Component { id: liveTvPage; LiveTvPage { app: window } }
 
     property alias stack: stack
     property alias menu: menu

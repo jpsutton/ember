@@ -14,6 +14,7 @@ qt_add_qml_module(ember_lib
     qml/Theme.qml
     qml/components/Backdrop.qml
     qml/components/BigRow.qml
+    qml/components/ChannelLogo.qml
     qml/components/DetailsPane.qml
     qml/components/FieldButton.qml
     qml/components/ItemRow.qml
@@ -27,6 +28,7 @@ qt_add_qml_module(ember_lib
     qml/pages/InfoPage.qml
     qml/pages/LibraryPage.qml
     qml/pages/LibraryPickerPage.qml
+    qml/pages/LiveTvPage.qml
     qml/pages/PlayerPage.qml
     qml/pages/SearchPage.qml
     qml/pages/ServerPage.qml

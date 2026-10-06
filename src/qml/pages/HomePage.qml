@@ -64,7 +64,8 @@ FocusScope {
     }
 
     function activate(entry) {
-        if (entry.kind === "library") page.app.openLibrary(entry.library)
+        if (entry.kind === "library" && entry.library.collectionType === "livetv") page.app.openLiveTv()
+        else if (entry.kind === "library") page.app.openLibrary(entry.library)
         else if (entry.kind === "search") page.app.stack.push(page.app.searchPageComponent)
         else if (entry.kind === "settings") page.app.stack.push(page.app.settingsPageComponent)
     }
@@ -78,6 +79,8 @@ FocusScope {
     }
 
     function openSubmenu() {
+        // Live TV opens straight to its guide.
+        if (page.focused.kind === "library" && page.focused.library.collectionType === "livetv") return
         if (page.focused.kind === "library") submenu.model = submenuFor(page.focused.library)
         else if (page.focused.kind === "settings") submenu.model = settingsSubmenu()
         else return
@@ -96,8 +99,9 @@ FocusScope {
     // Random fanart from the focused library, changing every 20 s.
     ItemListModel {
         id: fanart
-        // Collections have no fanart of their own; use any film's.
-        readonly property bool collections: page.focused.kind === "library" && page.focused.library.collectionType === "boxsets"
+        // Collections and Live TV have no fanart of their own; use any film's.
+        readonly property bool collections: page.focused.kind === "library"
+                                            && ["boxsets", "livetv"].indexOf(page.focused.library.collectionType) >= 0
         mode: "items"
         parentId: page.focused.kind === "library" && !collections ? page.focused.library.id : ""
         includeTypes: page.focused.kind === "library" && !collections

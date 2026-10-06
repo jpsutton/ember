@@ -8,7 +8,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # GuiPrivate only for the QPA header that hands out a window's wl_surface;
 # see src/player/plane/README.md.
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
-find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui GuiPrivate Quick Network DBus)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui GuiPrivate Quick Network DBus WebSockets)
 find_package(KF6Config 6.0 REQUIRED)
 find_package(KF6CoreAddons 6.0 REQUIRED)
 find_package(KF6DBusAddons 6.0 REQUIRED)

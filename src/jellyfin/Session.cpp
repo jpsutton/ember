@@ -22,6 +22,7 @@
 #include <QCoroTimer>
 
 #include "ApiClient.h"
+#include "EventSocket.h"
 
 Q_LOGGING_CATEGORY(lcSession, "ember.session")
 
@@ -86,6 +87,10 @@ void Session::load() {
   QString device_id = device.readEntry("Id", QString());
   if (device_id.isEmpty()) device_id = QUuid::createUuid().toString(QUuid::WithoutBraces);
   api_ = new ApiClient(network_, device_id, this);
+  events_ = new EventSocket(api_, this);
+  connect(events_, &EventSocket::userDataChanged, this,
+          [this](const QString& item_id, const QJsonObject&) { emit userDataChanged(item_id); });
+  connect(events_, &EventSocket::libraryChanged, this, &Session::libraryChanged);
 
   KConfigGroup server = config.group(QStringLiteral("Server"));
   const QString url = server.readEntry("Url", QString());
@@ -116,6 +121,7 @@ void Session::load() {
   }
 
   if (state_ == State::SignedIn) {
+    events_->start();
     validateSessionTask();
     refreshLibrariesTask();
   }
@@ -172,6 +178,12 @@ QVariantList Session::shownLibraries() const {
 }
 
 void Session::setState(State state) {
+  // The event stream runs exactly while someone is signed in.
+  if (state == State::SignedIn) {
+    events_->start();
+  } else {
+    events_->stop();
+  }
   if (state == state_) return;
   state_ = state;
   emit stateChanged();

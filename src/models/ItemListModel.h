@@ -46,6 +46,9 @@ class ItemListModel : public QAbstractListModel {
   Q_PROPERTY(QString errorString READ errorString NOTIFY errorStringChanged)
   // Changes whenever any row does, so bindings that call get() re-evaluate.
   Q_PROPERTY(int revision READ revision NOTIFY revisionChanged)
+  // The server's library changed since the list loaded; reload() when
+  // convenient (LibraryPage does when it is shown again).
+  Q_PROPERTY(bool stale READ stale NOTIFY staleChanged)
 
  public:
   explicit ItemListModel(QObject* parent = nullptr);
@@ -88,6 +91,7 @@ class ItemListModel : public QAbstractListModel {
   bool loading() const { return loading_; }
   QString errorString() const { return error_string_; }
   int revision() const { return revision_; }
+  bool stale() const { return stale_; }
 
   Q_INVOKABLE QVariantMap get(int index) const;
   Q_INVOKABLE int indexOfId(const QString& id) const;
@@ -108,6 +112,7 @@ class ItemListModel : public QAbstractListModel {
   void errorStringChanged();
   void letterFound(int index);
   void revisionChanged();
+  void staleChanged();
   // The first page has arrived after a reload.
   void loaded();
 
@@ -122,7 +127,7 @@ class ItemListModel : public QAbstractListModel {
 
   void scheduleReload();
   QCoro::Task<> fetchPage(quint64 generation, int start);
-  QCoro::Task<> refreshItemTask(QString id);
+  QCoro::Task<> refreshItemsTask(QStringList ids);
   QCoro::Task<> setPlayedTask(QString id, bool played);
   QCoro::Task<> findLetterTask(QString letter, quint64 generation);
   bool pagedMode() const;
@@ -150,7 +155,11 @@ class ItemListModel : public QAbstractListModel {
   QString error_string_;
   quint64 generation_ = 0;
   int revision_ = 0;
+  bool stale_ = false;
   QTimer reload_timer_;
+  // Items whose watched state changed, refreshed together.
+  QStringList changed_ids_;
+  QTimer changed_timer_;
   QList<QByteArray> field_names_;
 };
 

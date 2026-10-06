@@ -13,7 +13,7 @@ jobs:
       - name: Install dependencies
         run: |
           pacman -Syu --noconfirm --needed base-devel git cmake ninja \
-            qt6-base qt6-declarative mpv wayland wayland-protocols \
+            qt6-base qt6-declarative qt6-websockets mpv wayland wayland-protocols \
             kconfig kcoreaddons kdbusaddons kwindowsystem qcoro extra-cmake-modules
       - uses: actions/checkout@v4
       - name: Configure

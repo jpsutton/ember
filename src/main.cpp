@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
   remote_keys.setHoldMilliseconds(ember::EmberSettings::self()->holdMilliseconds());
   app.installEventFilter(&remote_keys);
 
-  ember::jellyfin::Session session;
+  ember::jellyfin::Session session(nullptr);
   ember::ImageNetworkFactory image_network;
 
   QQmlApplicationEngine engine;

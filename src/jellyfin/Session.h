@@ -18,6 +18,7 @@ class QUdpSocket;
 namespace ember::jellyfin {
 
 class ApiClient;
+class EventSocket;
 
 // The signed-in server and user, and the libraries the user chose to show.
 // Persisted in ~/.local/state/ember/session (mode 0600; it holds the token).
@@ -53,7 +54,10 @@ class Session : public QObject {
   };
   Q_ENUM(State)
 
-  explicit Session(QObject* parent = nullptr);
+  // No default argument on purpose: main() creates the one Session, and QML
+  // must get it through create(). With a default constructor, QML built a
+  // second one.
+  explicit Session(QObject* parent);
   ~Session() override;
 
   static Session* instance();
@@ -106,6 +110,9 @@ class Session : public QObject {
   void librariesChanged();
   // The token was refused; the user has to sign in again.
   void signedOutByServer();
+  // From the server's event stream.
+  void userDataChanged(const QString& itemId);
+  void libraryChanged();
 
  private:
   struct Library {
@@ -130,6 +137,7 @@ class Session : public QObject {
 
   QNetworkAccessManager* network_;
   ApiClient* api_;
+  EventSocket* events_ = nullptr;
   State state_ = State::NoServer;
   bool busy_ = false;
   QString error_string_;

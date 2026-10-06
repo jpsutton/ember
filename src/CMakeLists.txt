@@ -35,6 +35,7 @@ qt_add_qml_module(ember_lib
     app/SystemIntegration.h app/SystemIntegration.cpp
     jellyfin/ApiClient.h jellyfin/ApiClient.cpp
     jellyfin/Items.h jellyfin/Items.cpp
+    jellyfin/EventSocket.h jellyfin/EventSocket.cpp
     jellyfin/Session.h jellyfin/Session.cpp
     models/ItemDetails.h models/ItemDetails.cpp
     models/ItemListModel.h models/ItemListModel.cpp
@@ -49,7 +50,7 @@ target_include_directories(ember_lib PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}/app" "${CMAKE_CURRENT_SOURCE_DIR}/jellyfin" "${CMAKE_CURRENT_SOURCE_DIR}/models"
   "${CMAKE_CURRENT_SOURCE_DIR}/playback" "${CMAKE_CURRENT_SOURCE_DIR}/player")
 target_link_libraries(ember_lib PUBLIC
-  Qt6::Core Qt6::Gui Qt6::Quick Qt6::Network Qt6::DBus
+  Qt6::Core Qt6::Gui Qt6::Quick Qt6::Network Qt6::DBus Qt6::WebSockets
   KF6::ConfigCore KF6::ConfigGui KF6::CoreAddons KF6::DBusAddons
   QCoro6::Core QCoro6::Network
   PkgConfig::MPV

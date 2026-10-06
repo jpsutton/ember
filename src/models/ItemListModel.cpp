@@ -57,6 +57,28 @@ ItemListModel::ItemListModel(QObject* parent) : QAbstractListModel(parent) {
   connect(this, &QAbstractItemModel::dataChanged, this, bump);
   connect(this, &QAbstractItemModel::modelReset, this, bump);
   connect(this, &QAbstractItemModel::rowsInserted, this, bump);
+
+  // Changes pushed by the server: watched state per item (refreshed in one
+  // request per burst), and the library as a whole (the list goes stale).
+  changed_timer_.setSingleShot(true);
+  changed_timer_.setInterval(300);
+  connect(&changed_timer_, &QTimer::timeout, this, [this]() {
+    QStringList ids;
+    ids.swap(changed_ids_);
+    if (!ids.isEmpty()) refreshItemsTask(ids);
+  });
+  if (Session* session = Session::instance()) {
+    connect(session, &Session::userDataChanged, this, [this](const QString& id) {
+      if (indexOfId(id) < 0 || changed_ids_.contains(id)) return;
+      changed_ids_.append(id);
+      changed_timer_.start();
+    });
+    connect(session, &Session::libraryChanged, this, [this]() {
+      if (stale_ || rows_.isEmpty()) return;
+      stale_ = true;
+      emit staleChanged();
+    });
+  }
 }
 
 int ItemListModel::rowCount(const QModelIndex& parent) const { return parent.isValid() ? 0 : int(rows_.size()); }
@@ -101,6 +123,10 @@ void ItemListModel::reload() {
   total_ = 0;
   exhausted_ = false;
   endResetModel();
+  if (stale_) {
+    stale_ = false;
+    emit staleChanged();
+  }
   emit countChanged();
   setError(QString());
   setLoading(false);
@@ -247,21 +273,26 @@ int ItemListModel::indexOfId(const QString& id) const {
   return -1;
 }
 
-void ItemListModel::refreshItem(const QString& id) { refreshItemTask(id); }
+void ItemListModel::refreshItem(const QString& id) { refreshItemsTask({id}); }
 
-QCoro::Task<> ItemListModel::refreshItemTask(QString id) {
+QCoro::Task<> ItemListModel::refreshItemsTask(QStringList ids) {
   QPointer<ItemListModel> self(this);
   Session* session = Session::instance();
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("userId"), session->userId());
+  query.addQueryItem(QStringLiteral("Ids"), ids.join(QLatin1Char(',')));
   query.addQueryItem(QStringLiteral("Fields"), jellyfin::ListFields());
+  query.addQueryItem(QStringLiteral("EnableImageTypes"), QStringLiteral("Primary,Backdrop,Logo,Thumb"));
   const quint64 generation = generation_;
-  const Reply reply = co_await session->api()->get(QStringLiteral("/Items/%1").arg(id), query);
+  const Reply reply = co_await session->api()->get(QStringLiteral("/Items"), query);
   if (!self || generation != generation_ || !reply.ok()) co_return;
-  const int row = indexOfId(id);
-  if (row < 0) co_return;
-  rows_[row] = jellyfin::ItemToVariant(reply.object(), session->api());
-  emit dataChanged(index(row), index(row));
+  for (const QJsonValue& value : reply.object().value(QStringLiteral("Items")).toArray()) {
+    const QJsonObject item = value.toObject();
+    const int row = indexOfId(item.value(QStringLiteral("Id")).toString());
+    if (row < 0) continue;
+    rows_[row] = jellyfin::ItemToVariant(item, session->api());
+    emit dataChanged(index(row), index(row));
+  }
 }
 
 void ItemListModel::setPlayed(const QString& id, bool played) { setPlayedTask(id, played); }

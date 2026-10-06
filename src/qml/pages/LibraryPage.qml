@@ -60,8 +60,15 @@ FocusScope {
                                       hideWatched: String(items.hideWatched) })
     }
 
-    // When the player closes, refresh what it changed.
+    // When the page shows again: reload if the server's library changed
+    // meanwhile, and refresh what the player changed.
     StackView.onActivated: {
+        if (items.stale) {
+            restoreId = current.id || ""
+            items.reload()
+            playedId = ""
+            return
+        }
         if (playedId === "") return
         if (items.mode === "episodes" || items.mode === "seasons" || items.mode === "resume" || items.mode === "nextup") {
             restoreId = current.id || ""

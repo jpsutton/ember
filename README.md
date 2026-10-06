@@ -1,121 +1,91 @@
 # Ember
 
-A Jellyfin client for [couchbox](https://github.com/jpsutton/couchbox) that
-browses like Kodi's Amber skin with its vertical menu: a text menu on the
-left, list views with a details pane and fanart, and drill-down with Back,
-all driven by a TV remote. Qt 6 (QML) and C++, with mpv for playback.
-
-[PLAN.md](PLAN.md) has the design, the milestones and their status.
+Ember is a Jellyfin app for the TV, made for
+[couchbox](https://github.com/jpsutton/couchbox). It looks and works like
+Kodi's Amber skin: a plain menu down the left side, lists with artwork and
+details, and everything done with a TV remote.
 
 ![The home menu](docs/screenshots/home.jpg)
+
+## What it does
+
+- Finds your Jellyfin server on the network and signs you in with a code
+  from your phone or with your password.
+- Puts the libraries you choose on the home menu.
+- Shows what's new in each library: recently added, and recently aired. An
+  episode that a streaming service releases early shows up when it arrives,
+  not weeks later when it officially airs.
+- Remembers where you stopped, skips intros, and offers the next episode
+  when one ends.
+- Works with the Jellyfin app on your phone: send a video to the TV, or use
+  the phone as a remote.
 
 ## Screenshots
 
 <table>
   <tr>
-    <td><img src="docs/screenshots/submenu.jpg" alt="A library's submenu"></td>
-    <td><img src="docs/screenshots/list.jpg" alt="A film library in the List view"></td>
+    <td><img src="docs/screenshots/submenu.jpg" alt="A library's menu"></td>
+    <td><img src="docs/screenshots/list.jpg" alt="A film library"></td>
   </tr>
   <tr>
-    <td>Left on a library opens its submenu.</td>
-    <td>The List view: details and fanart for the highlighted row.</td>
+    <td>More ways to browse a library.</td>
+    <td>A library, with details for the highlighted film.</td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/episodes.jpg" alt="A season's episodes"></td>
-    <td><img src="docs/screenshots/recently-aired.jpg" alt="Recently aired episodes across a show library"></td>
+    <td><img src="docs/screenshots/recently-aired.jpg" alt="Recently aired episodes"></td>
   </tr>
   <tr>
-    <td>Episodes, with watched and in-progress marks.</td>
-    <td>Recently aired: a show library's newest episodes, whichever show they belong to.</td>
+    <td>A season, showing what you've watched.</td>
+    <td>Recently aired episodes from every show.</td>
   </tr>
   <tr>
-    <td><img src="docs/screenshots/info.jpg" alt="An item's information page"></td>
-    <td><img src="docs/screenshots/player.jpg" alt="The player's panel during playback"></td>
+    <td><img src="docs/screenshots/info.jpg" alt="A film's details"></td>
+    <td><img src="docs/screenshots/player.jpg" alt="Playback"></td>
   </tr>
   <tr>
-    <td>Info shows an item's details, cast and actions.</td>
-    <td>The player's panel. The video is the Sintel trailer (Blender Foundation, CC BY 3.0).</td>
+    <td>Details, cast and actions for one film.</td>
+    <td>Playback. Video: the Sintel trailer, Blender Foundation, CC BY 3.0.</td>
   </tr>
 </table>
 
-Taken on a couchbox test box against a development server. The artwork is
-whatever the server's metadata providers supplied.
+## Using the remote
 
-## Using it
+**Home menu.** Up and Down pick a library. OK opens it. Left shows more ways
+to browse it: recently added, recently aired, in progress, genres and so on.
 
-- **First start**: pick your server from the ones found on the network (or
-  type its address), sign in with Quick Connect (or a user name and
-  password), then choose which libraries the home menu shows.
-- **Home**: Up/Down move through the menu (it stays still unless it holds
-  more than fits; Settings can pin the highlight instead), OK opens a
-  library, Left or Back
-  opens its submenu (recently added, recently aired, in progress, genres,
-  years, collections and so on). Recently added and Recently aired list the
-  library's films or episodes, newest first; an episode a streaming service
-  released before its air date counts as aired when it was added.
-- **Lists**: OK opens folders, shows and seasons, and plays movies and
-  episodes (resuming where you left off). Info opens the item's details.
-  Menu, or OK held for a moment, opens the context menu (play from the
-  beginning, mark watched, go to the show). Left opens the view options
-  (sort, order, hide watched, list style). Right moves to the scroll bar,
-  where Up/Down page the list; Right again, when sorted by name, opens the
-  A–Z strip. Channel +/− page the list without leaving the rows.
-- **Playing**: OK or Play/Pause pauses, Left/Right seek, Up/Down and
-  Channel +/− jump between chapters, Menu (or held OK) picks audio,
-  subtitles and chapters, Info shows or hides the panel, Back or Stop ends
-  playback. Near the end of an episode the next one is offered and starts by
-  itself after a countdown.
+**Lists.**
 
-Other Jellyfin clients see Ember as a device to play to: "Play On" from the
-Jellyfin phone app starts playback on the TV, and its remote control pauses,
-seeks, skips, moves around the menus and sends messages.
+- OK plays a film or episode, or opens a show.
+- Info shows the details page.
+- Menu, or holding OK, shows options such as "mark watched".
+- Left changes the sort order and the look of the list.
+- Right moves to the scroll bar. There, Up and Down move a page at a time.
+- Channel up and down also move a page at a time.
 
-Settings (interface size, downmix and dialogue boost, streaming quality,
-subtitles, next-episode behaviour, seek step) are on the home menu and are
-saved in `~/.config/emberrc`. The session, which holds the access token, is
-kept in `~/.local/state/ember/session`, readable only by its owner.
+**Watching.**
 
-On couchbox, Ember also follows `~/.config/couchboxrc`: the `[Video]`
-transcode settings decide which codecs the server is asked to convert, and
-`PlezyScaling=fast` selects mpv's cheap scalers.
+- OK pauses.
+- Left and Right skip back and forward.
+- Up and Down jump between chapters.
+- Menu picks audio and subtitles.
+- Back stops.
 
-## Building
+When an episode ends, the next one starts after a short countdown.
 
-Needs Qt 6.8 or later (Base, Declarative, WebSockets), KDE Frameworks 6 (Config,
-CoreAddons, DBusAddons, WindowSystem), QCoro 6, mpv (libmpv), Wayland
-client libraries and wayland-protocols. On Arch:
+## Settings
 
-```sh
-pacman -S --needed cmake ninja extra-cmake-modules qt6-base qt6-declarative qt6-websockets \
-  kconfig kcoreaddons kdbusaddons kwindowsystem qcoro mpv wayland wayland-protocols
-cmake -S . -B build -G Ninja
-cmake --build build
-ctest --test-dir build
-```
+Settings is at the bottom of the home menu. It covers text size, the stereo
+mix and dialogue boost, streaming quality, subtitles, playing the next
+episode, skipping intros, and how far Left and Right skip.
 
-Video needs a Wayland session: mpv renders into a subsurface below Ember's
-transparent window (see `src/player/plane/README.md`). `EMBER_WINDOWED=1`
-opens a window instead of going full screen, and `EMBER_KEYS=1` logs every
-key event.
+## Getting it
 
-## Development
-
-- `scripts/dev-server.sh` runs a throwaway Jellyfin server in Docker with a
-  generated library of short test clips named after open and public-domain
-  films, so Jellyfin fetches real metadata and artwork. Admin user and
-  password: `ember`.
-- `-DEMBER_BUILD_DEV_TOOLS=ON` also builds `ember-plane-spike` (plays a file
-  through the video plane) and `ember-shot` (screenshots through KWin,
-  video included). `tools/remote-keys.py` presses keys through a virtual
-  input device, as a remote would after fire-blaster.
+Ember comes with couchbox. To build it yourself, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Licence
 
-GPL-3.0-only (see [LICENSE](LICENSE)). The video plane is adapted from
-[Plezy](https://github.com/edde746/plezy) (GPL-3.0) by way of
-[couchbox-iptv](https://github.com/jpsutton/couchbox-iptv), and the Jellyfin
-behaviour follows Plezy's Jellyfin backend.
-
-The bundled fonts in `fonts/` are the ones Kodi's Amber skin uses: Ubuntu
-Condensed (Ubuntu Font Licence 1.0, taken from Amber) and Bebas Neue (SIL
-Open Font License 1.1, from Google Fonts). Their licences are next to them.
+GPL-3.0. Ember's video player is adapted from
+[Plezy](https://github.com/edde746/plezy). The fonts come from Kodi's Amber
+skin; their licences are in [fonts/](fonts/).

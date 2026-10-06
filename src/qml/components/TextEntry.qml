@@ -14,6 +14,22 @@ FocusScope {
 
     signal accepted()
 
+    // In a password, the last character shows for a moment after it is
+    // typed, so a slip is visible.
+    property bool revealLast: false
+    Timer {
+        id: revealTimer
+        interval: 1500
+        onTriggered: root.revealLast = false
+    }
+
+    function displayText() {
+        if (text === "") return placeholder
+        if (!password) return text
+        if (revealLast) return "•".repeat(text.length - 1) + text.charAt(text.length - 1)
+        return "•".repeat(text.length)
+    }
+
     implicitWidth: keyboard.implicitWidth
     implicitHeight: column.implicitHeight
 
@@ -42,7 +58,7 @@ FocusScope {
                 anchors.rightMargin: Theme.px(20)
                 verticalAlignment: Text.AlignVCenter
                 elide: Text.ElideLeft
-                text: root.text === "" ? root.placeholder : (root.password ? "•".repeat(root.text.length) : root.text)
+                text: root.displayText()
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.rowFont
                 color: root.text === "" ? Theme.faint : Theme.text
@@ -52,8 +68,15 @@ FocusScope {
         Keyboard {
             id: keyboard
             focus: true
-            onTyped: (text) => root.text += text
-            onBackspace: root.text = root.text.slice(0, -1)
+            onTyped: (text) => {
+                root.text += text
+                root.revealLast = true
+                revealTimer.restart()
+            }
+            onBackspace: {
+                root.text = root.text.slice(0, -1)
+                root.revealLast = false
+            }
             onDone: root.accepted()
         }
     }

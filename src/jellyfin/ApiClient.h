@@ -19,7 +19,8 @@ namespace ember::jellyfin {
 struct Reply {
   int status = 0;           // HTTP status; 0 when the request never got one
   QString error;            // set when the request failed for any reason
-  QJsonDocument json;       // the body, when it was JSON
+  QJsonDocument json;       // the body, when it was a JSON object or array
+  QByteArray body;          // the body as received
   bool ok() const { return error.isEmpty(); }
   QJsonObject object() const { return json.object(); }
   QJsonArray array() const { return json.array(); }

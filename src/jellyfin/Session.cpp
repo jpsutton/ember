@@ -304,11 +304,8 @@ QCoro::Task<> Session::connectToServerTask(QString address) {
     emit serverChanged();
     const Reply enabled = co_await api_->get(QStringLiteral("/QuickConnect/Enabled"));
     if (!self) co_return;
-    quick_connect_available_ = enabled.ok() && enabled.json.toVariant().toBool();
-    if (!quick_connect_available_ && enabled.ok()) {
-      // Some versions answer a bare JSON bool, which QJsonDocument rejects.
-      quick_connect_available_ = enabled.status == 200;
-    }
+    // The answer is a bare JSON bool, which QJsonDocument doesn't parse.
+    quick_connect_available_ = enabled.ok() && enabled.body.trimmed() == "true";
     emit quickConnectChanged();
     save();
     setState(api_->token().isEmpty() ? State::SignedOut : State::SignedIn);

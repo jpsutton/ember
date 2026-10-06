@@ -10,6 +10,10 @@ FocusScope {
 
     property bool shifted: false
     property bool symbols: false
+    // Set while text arrives from a real keyboard (or a phone's, through
+    // KDE Connect): Enter then means "done", not "press the highlighted key".
+    // Moving with the arrows hands control back to the on-screen keys.
+    property bool typing: false
 
     signal typed(string text)
     signal backspace()
@@ -105,27 +109,33 @@ FocusScope {
     Keys.onPressed: (event) => {
         switch (event.key) {
         case Qt.Key_Up:
+            typing = false
             row = (row + 4) % 5
             column = Math.min(column, columnCount(row) - 1)
             break
         case Qt.Key_Down:
+            typing = false
             row = (row + 1) % 5
             column = Math.min(column, columnCount(row) - 1)
             break
         case Qt.Key_Left:
+            typing = false
             column = (column + columnCount(row) - 1) % columnCount(row)
             break
         case Qt.Key_Right:
+            typing = false
             column = (column + 1) % columnCount(row)
             break
         case Qt.Key_Return:
-            press()
+            if (typing) done()
+            else press()
             break
         case Qt.Key_Backspace:
             backspace()
             break
         default:
-            if (event.text.length === 1 && event.text >= " " && event.modifiers !== Qt.ControlModifier) {
+            if (event.text.length > 0 && event.text >= " " && !(event.modifiers & Qt.ControlModifier)) {
+                typing = true
                 typed(event.text)
                 break
             }

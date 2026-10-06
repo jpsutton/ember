@@ -104,8 +104,8 @@ QCoro::Task<Reply> ApiClient::send(QByteArray verb, QUrl url, QByteArray body, i
 
   Reply result;
   result.status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-  const QByteArray data = reply->readAll();
-  if (!data.isEmpty()) result.json = QJsonDocument::fromJson(data);
+  result.body = reply->readAll();
+  if (!result.body.isEmpty()) result.json = QJsonDocument::fromJson(result.body);
   if (reply->error() != QNetworkReply::NoError) {
     result.error = result.status != 0 ? QStringLiteral("HTTP %1").arg(result.status) : reply->errorString();
     qCInfo(lcApi).noquote() << verb << url.path() << "failed:" << result.error;

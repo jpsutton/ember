@@ -19,6 +19,14 @@ FocusScope {
     }
     Component.onDestruction: Session.cancelQuickConnect()
 
+    // A refused password is cleared for the next try.
+    Connections {
+        target: Session
+        function onErrorStringChanged() {
+            if (Session.errorString !== "" && page.mode === "password") passwordEntry.text = ""
+        }
+    }
+
     function show(next) {
         mode = next
         if (next === "quick") Session.startQuickConnect()

@@ -382,7 +382,8 @@ FocusScope {
                 width: Theme.px(320)
                 height: tp.width ? width * tp.height / tp.width : Theme.px(180)
                 x: Math.max(0, Math.min(bar.width - width, bar.width * bar.shown / Math.max(1, playback.duration) - width / 2))
-                y: -height - Theme.px(70)
+                // Above the panel, clear of the title.
+                y: -bar.y - height - Theme.px(20)
                 color: "black"
                 border.color: Theme.highlight
                 border.width: Theme.px(2)
@@ -405,6 +406,20 @@ FocusScope {
                     height: preview.height
                 }
             }
+        }
+
+        // Loads the tile for the current position while the panel is up, so
+        // the first seek has its thumbnail ready.
+        Image {
+            visible: false
+            asynchronous: true
+            // Only the download matters; decode it small.
+            sourceSize: Qt.size(400, 225)
+            readonly property var tp: playback.trickplay
+            source: tp.url !== undefined && osd.visible
+                    ? tp.url.replace("%1", Math.floor(Math.floor(playback.position / Math.max(0.001, tp.interval))
+                                                      / Math.max(1, tp.tileWidth * tp.tileHeight)))
+                    : ""
         }
 
         Text {

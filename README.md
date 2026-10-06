@@ -7,6 +7,40 @@ all driven by a TV remote. Qt 6 (QML) and C++, with mpv for playback.
 
 [PLAN.md](PLAN.md) has the design, the milestones and their status.
 
+![The home menu](docs/screenshots/home.jpg)
+
+## Screenshots
+
+<table>
+  <tr>
+    <td><img src="docs/screenshots/submenu.jpg" alt="A library's submenu"></td>
+    <td><img src="docs/screenshots/list.jpg" alt="A film library in the List view"></td>
+  </tr>
+  <tr>
+    <td>Left on a library opens its submenu.</td>
+    <td>The List view: details and fanart for the highlighted row.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/episodes.jpg" alt="A season's episodes"></td>
+    <td><img src="docs/screenshots/side-blade.jpg" alt="The view options blade"></td>
+  </tr>
+  <tr>
+    <td>Episodes, with watched and in-progress marks.</td>
+    <td>Left on a list opens the view options, including Recently added and Recently aired.</td>
+  </tr>
+  <tr>
+    <td><img src="docs/screenshots/info.jpg" alt="An item's information page"></td>
+    <td><img src="docs/screenshots/player.jpg" alt="The player's panel during playback"></td>
+  </tr>
+  <tr>
+    <td>Info shows an item's details, cast and actions.</td>
+    <td>The player's panel. The video is the Sintel trailer (Blender Foundation, CC BY 3.0).</td>
+  </tr>
+</table>
+
+Taken on a couchbox test box against a development server. The artwork is
+whatever the server's metadata providers supplied.
+
 ## Using it
 
 - **First start**: pick your server from the ones found on the network (or
@@ -19,7 +53,8 @@ all driven by a TV remote. Qt 6 (QML) and C++, with mpv for playback.
   episodes (resuming where you left off). Info opens the item's details.
   Menu, or OK held for a moment, opens the context menu (play from the
   beginning, mark watched, go to the show). Left opens the view options
-  (sort, order, hide watched); Right, when sorted by name, opens the A–Z
+  (sort, order, hide watched, list style; on a whole library also Recently
+  added and Recently aired); Right, when sorted by name, opens the A–Z
   strip. Channel +/− page the list.
 - **Playing**: OK or Play/Pause pauses, Left/Right seek, Up/Down and
   Channel +/− jump between chapters, Menu (or held OK) picks audio,

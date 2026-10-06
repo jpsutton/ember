@@ -75,12 +75,17 @@ void Playback::setVideo(MpvVideo* video) {
     connect(video_, &MpvVideo::mpvEvent, this, &Playback::onMpvEvent);
     connect(video_, &MpvVideo::mpvPropertyChanged, this, &Playback::onMpvProperty);
     for (const char* name : {"time-pos", "duration"}) video_->observe(QString::fromLatin1(name), QStringLiteral("double"));
-    for (const char* name : {"pause", "paused-for-cache", "eof-reached"}) {
+    for (const char* name : {"pause", "paused-for-cache", "eof-reached", "deinterlace-active"}) {
       video_->observe(QString::fromLatin1(name), QStringLiteral("flag"));
     }
     video_->observe(QStringLiteral("track-list"), QStringLiteral("node"));
     video_->observe(QStringLiteral("demuxer-cache-state"), QStringLiteral("node"));
     applyAudioSettings();
+    // Deinterlace frames the decoder marks interlaced (broadcast 480i and
+    // 1080i, which Live TV passes through untouched), as Kodi does by
+    // default. With VA-API this is the GPU's vavpp; progressive video is
+    // left alone.
+    video_->setOption(QStringLiteral("deinterlace"), QStringLiteral("auto"));
     if (CouchboxConfig().fastScaling()) {
       // couchbox's profile for weak GPUs: cheap scalers, no dithering.
       for (const auto& [name, value] :
@@ -831,6 +836,8 @@ void Playback::onMpvProperty(const QString& name, const QVariant& value) {
   } else if (name == QLatin1String("duration")) {
     duration_ = value.isValid() ? value.toDouble() : 0;
     emit durationChanged();
+  } else if (name == QLatin1String("deinterlace-active")) {
+    if (value.toBool()) qCInfo(lcPlayback, "deinterlacing");
   } else if (name == QLatin1String("pause")) {
     const bool paused = value.toBool();
     if (paused == paused_) return;

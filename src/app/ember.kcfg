@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kcfg xmlns="http://www.kde.org/standards/kcfg/1.0"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.kde.org/standards/kcfg/1.0 http://www.kde.org/standards/kcfg/1.0/kcfg.xsd">
+  <kcfgfile name="emberrc"/>
+  <group name="General">
+    <entry name="UiScale" type="Double">
+      <label>Multiplies every size in the interface.</label>
+      <default>1.0</default>
+      <min>0.5</min>
+      <max>2.0</max>
+    </entry>
+    <entry name="StaticMenu" type="Bool">
+      <label>The home menu stays still and the highlight moves (instead of a fixed highlight).</label>
+      <default>false</default>
+    </entry>
+    <entry name="CenteredListFocus" type="Bool">
+      <label>Lists keep the highlighted row in the middle.</label>
+      <default>false</default>
+    </entry>
+    <entry name="HoldMilliseconds" type="Int">
+      <label>How long OK is held to open the context menu.</label>
+      <default>600</default>
+    </entry>
+  </group>
+  <group name="Playback">
+    <entry name="Downmix" type="Bool">
+      <label>Mix surround sound down to stereo.</label>
+      <default>true</default>
+    </entry>
+    <entry name="CenterBoostDb" type="Int">
+      <label>Extra dialogue level in the stereo mix, in dB.</label>
+      <default>8</default>
+      <min>0</min>
+      <max>12</max>
+    </entry>
+    <entry name="AudioLanguage" type="String">
+      <label>Preferred audio language (ISO 639-2, e.g. eng); empty follows the server.</label>
+      <default></default>
+    </entry>
+    <entry name="SubtitleLanguage" type="String">
+      <label>Preferred subtitle language; empty follows the server.</label>
+      <default></default>
+    </entry>
+    <entry name="SubtitleMode" type="String">
+      <label>Subtitles: server, off, forced, always.</label>
+      <default>server</default>
+    </entry>
+    <entry name="MaxBitrateMbps" type="Int">
+      <label>Streaming limit in Mbit/s; 0 plays the original.</label>
+      <default>0</default>
+    </entry>
+    <entry name="AutoPlayNext" type="Bool">
+      <label>Play the next episode automatically.</label>
+      <default>true</default>
+    </entry>
+    <entry name="NextUpSeconds" type="Int">
+      <label>Countdown before the next episode starts.</label>
+      <default>10</default>
+    </entry>
+    <entry name="AutoSkipIntro" type="Bool">
+      <label>Skip intros without asking.</label>
+      <default>false</default>
+    </entry>
+    <entry name="SeekStepSeconds" type="Int">
+      <label>How far Left and Right seek.</label>
+      <default>10</default>
+    </entry>
+  </group>
+</kcfg>

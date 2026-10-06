@@ -1,0 +1,10 @@
+File=ember.kcfg
+ClassName=EmberSettings
+NameSpace=ember
+Singleton=true
+Mutators=true
+DefaultValueGetters=true
+GenerateProperties=true
+ParentInConstructor=false
+QmlRegistration=true
+Notifiers=true

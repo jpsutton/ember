@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Ember
+GenericName=Jellyfin client
+Comment=Browse and play your Jellyfin library
+Exec=ember
+Icon=org.couchbox.ember
+Categories=AudioVideo;Video;Player;
+StartupWMClass=org.couchbox.ember
+SingleMainWindow=true

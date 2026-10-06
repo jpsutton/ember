@@ -87,6 +87,7 @@ QString ImageUrl(const ApiClient* api, const QString& item_id, const QString& ty
 QString FormatRuntime(qint64 ticks) {
   if (ticks <= 0) return {};
   const qint64 minutes = (ticks / kTicksPerMillisecond + 30000) / 60000;
+  if (minutes < 1) return QStringLiteral("< 1 min");
   if (minutes < 60) return QStringLiteral("%1 min").arg(minutes);
   return QStringLiteral("%1 h %2 min").arg(minutes / 60).arg(minutes % 60);
 }

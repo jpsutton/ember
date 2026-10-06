@@ -88,7 +88,7 @@ class TestItems : public QObject {
     QTest::addColumn<qint64>("ticks");
     QTest::addColumn<QString>("text");
     QTest::newRow("none") << qint64(0) << QString();
-    QTest::newRow("29 s rounds down") << qint64(290'000'000) << QStringLiteral("0 min");
+    QTest::newRow("under half a minute") << qint64(290'000'000) << QStringLiteral("< 1 min");
     QTest::newRow("1 min") << qint64(600'000'000) << QStringLiteral("1 min");
     QTest::newRow("hour") << qint64(36'000'000'000) << QStringLiteral("1 h 0 min");
     QTest::newRow("feature") << qint64(57'000'000'000) << QStringLiteral("1 h 35 min");

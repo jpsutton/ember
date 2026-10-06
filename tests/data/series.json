@@ -1,0 +1,87 @@
+{
+ "Name": "The Twilight Zone",
+ "OriginalTitle": "The Twilight Zone",
+ "ServerId": "6c0898f9e2144e759dcbb04ff23db4ac",
+ "Id": "d0ab188c9b45d1d42db9bd5a654f9a89",
+ "DateCreated": "2026-10-06T02:29:16.9985488Z",
+ "SortName": "twilight zone",
+ "PremiereDate": "1959-10-02T00:00:00.0000000Z",
+ "OfficialRating": "TV-PG",
+ "ChannelId": null,
+ "Overview": "An anthology series containing drama, psychological thriller, fantasy, science fiction, suspense, and/or horror, often concluding with a macabre or unexpected twist.",
+ "Taglines": [],
+ "Genres": [
+  "Sci-Fi & Fantasy",
+  "Mystery",
+  "Drama"
+ ],
+ "CommunityRating": 8.51,
+ "RunTimeTicks": 15000000000,
+ "ProductionYear": 1959,
+ "IsFolder": true,
+ "Type": "Series",
+ "Studios": [
+  {
+   "Name": "CBS",
+   "Id": "0f59424070d17d52775061ff61a822b8"
+  },
+  {
+   "Name": "Cayuga Productions",
+   "Id": "b307dd3c52b4ca06c2c77d4541674d11"
+  }
+ ],
+ "GenreItems": [
+  {
+   "Name": "Sci-Fi & Fantasy",
+   "Id": "3d621c0b6dc1921bc93fa859f7512270"
+  },
+  {
+   "Name": "Mystery",
+   "Id": "d3a0ead52489743e5a68704142092c71"
+  },
+  {
+   "Name": "Drama",
+   "Id": "090eac6e9de4fe1fbc194e5b96691277"
+  }
+ ],
+ "UserData": {
+  "PlayedPercentage": 0,
+  "UnplayedItemCount": 8,
+  "PlaybackPositionTicks": 0,
+  "PlayCount": 0,
+  "IsFavorite": false,
+  "Played": false,
+  "Key": "d0ab188c-9b45-d1d4-2db9-bd5a654f9a89",
+  "ItemId": "d0ab188c9b45d1d42db9bd5a654f9a89"
+ },
+ "RecursiveItemCount": 8,
+ "ChildCount": 2,
+ "Status": "Ended",
+ "AirDays": [],
+ "ImageTags": {
+  "Primary": "4e4f5eeea1c401ba4e8b79cf561b8d88",
+  "Logo": "65dd64bfe8c8a4c197a6afdec960f7c9",
+  "Thumb": "968530b37738f3721311a1513aa107cc"
+ },
+ "BackdropImageTags": [
+  "59b4325ab5d1cf7690afd841ff98e751"
+ ],
+ "ImageBlurHashes": {
+  "Backdrop": {
+   "59b4325ab5d1cf7690afd841ff98e751": "WC9tM*D%9F-;Rjt7~qIUD%%Mafays:ofM{j[s;RjWBxuWBM{t7WB"
+  },
+  "Primary": {
+   "4e4f5eeea1c401ba4e8b79cf561b8d88": "dHF68|M{00t7?bj[Rjt7M{%MWBIUIUoffQt79FM{xuxu"
+  },
+  "Logo": {
+   "65dd64bfe8c8a4c197a6afdec960f7c9": "VOF$Y7of00t7M{IUofofay-;D%ayD%ofofayWBIURjt7"
+  },
+  "Thumb": {
+   "968530b37738f3721311a1513aa107cc": "WMB3+:9F9F~qIUM{t7tRM{WBxuM{IUxut7IUt7kCt7RjfQofRPfj"
+  }
+ },
+ "LocationType": "FileSystem",
+ "MediaType": "Unknown",
+ "EndDate": "1964-06-19T00:00:00.0000000Z",
+ "OriginalLanguage": "en"
+}

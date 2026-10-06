@@ -1,0 +1,62 @@
+{
+ "Name": "Season 1",
+ "ServerId": "6c0898f9e2144e759dcbb04ff23db4ac",
+ "Id": "92be66ef918deebb6b99afad9fe38185",
+ "DateCreated": "2026-10-06T02:29:17.0164212Z",
+ "SortName": "0001",
+ "PremiereDate": "1959-10-02T00:00:00.0000000Z",
+ "ChannelId": null,
+ "Overview": "The first season of The Twilight Zone aired Fridays at 10:00\u201310:30 pm on CBS from October 2, 1959 to July 1, 1960. There are 36 episodes, including the pilot, \"Where Is Everybody?\". The theme music for this season, written by Bernard Herrman, is different from the music most commonly associated with the series, written by Marius Constant for the second season onwards.",
+ "Taglines": [],
+ "Genres": [],
+ "ProductionYear": 1959,
+ "IndexNumber": 1,
+ "IsFolder": true,
+ "Type": "Season",
+ "Studios": [],
+ "GenreItems": [],
+ "ParentLogoItemId": "d0ab188c9b45d1d42db9bd5a654f9a89",
+ "ParentBackdropItemId": "d0ab188c9b45d1d42db9bd5a654f9a89",
+ "ParentBackdropImageTags": [
+  "59b4325ab5d1cf7690afd841ff98e751"
+ ],
+ "UserData": {
+  "PlayedPercentage": 0,
+  "UnplayedItemCount": 5,
+  "PlaybackPositionTicks": 0,
+  "PlayCount": 0,
+  "IsFavorite": false,
+  "Played": false,
+  "Key": "73587001",
+  "ItemId": "92be66ef918deebb6b99afad9fe38185"
+ },
+ "RecursiveItemCount": 5,
+ "ChildCount": 5,
+ "SeriesName": "The Twilight Zone",
+ "SeriesId": "d0ab188c9b45d1d42db9bd5a654f9a89",
+ "SeriesPrimaryImageTag": "4e4f5eeea1c401ba4e8b79cf561b8d88",
+ "ImageTags": {
+  "Primary": "7a6f6c7e130441faa8510f36a12f8a9b"
+ },
+ "BackdropImageTags": [],
+ "ParentLogoImageTag": "65dd64bfe8c8a4c197a6afdec960f7c9",
+ "ImageBlurHashes": {
+  "Primary": {
+   "7a6f6c7e130441faa8510f36a12f8a9b": "d~J96{t7NGtR~qt7WXt7-TjFt7t7ofWBxZt7kDkDofj@",
+   "4e4f5eeea1c401ba4e8b79cf561b8d88": "dHF68|M{00t7?bj[Rjt7M{%MWBIUIUoffQt79FM{xuxu"
+  },
+  "Logo": {
+   "65dd64bfe8c8a4c197a6afdec960f7c9": "VOF$Y7of00t7M{IUofofay-;D%ayD%ofofayWBIURjt7"
+  },
+  "Thumb": {
+   "968530b37738f3721311a1513aa107cc": "WMB3+:9F9F~qIUM{t7tRM{WBxuM{IUxut7IUt7kCt7RjfQofRPfj"
+  },
+  "Backdrop": {
+   "59b4325ab5d1cf7690afd841ff98e751": "WC9tM*D%9F-;Rjt7~qIUD%%Mafays:ofM{j[s;RjWBxuWBM{t7WB"
+  }
+ },
+ "ParentThumbItemId": "d0ab188c9b45d1d42db9bd5a654f9a89",
+ "ParentThumbImageTag": "968530b37738f3721311a1513aa107cc",
+ "LocationType": "FileSystem",
+ "MediaType": "Unknown"
+}

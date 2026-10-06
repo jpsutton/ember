@@ -1,10 +1,12 @@
-qt_add_executable(ember main.cpp)
+# Everything but main() lives in ember_lib, a QML module (URI Ember), so the
+# tests can link the same code the app runs.
+qt_add_library(ember_lib STATIC)
 
-kconfig_add_kcfg_files(ember GENERATE_MOC app/EmberSettings.kcfgc)
+kconfig_add_kcfg_files(ember_lib GENERATE_MOC app/EmberSettings.kcfgc)
 
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
-qt_add_qml_module(ember
+qt_add_qml_module(ember_lib
   URI Ember
   VERSION 1.0
   QML_FILES
@@ -39,19 +41,22 @@ qt_add_qml_module(ember
     playback/Playback.h playback/Playback.cpp
 )
 
-target_compile_definitions(ember PRIVATE EMBER_VERSION="${PROJECT_VERSION}")
-target_compile_options(ember PRIVATE -Wall -Wextra)
+target_compile_definitions(ember_lib PUBLIC EMBER_VERSION="${PROJECT_VERSION}")
+target_compile_options(ember_lib PRIVATE -Wall -Wextra)
 # The QML type registrations include each header by its file name.
-target_include_directories(ember PRIVATE
+target_include_directories(ember_lib PUBLIC
   "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}"
   "${CMAKE_CURRENT_SOURCE_DIR}/app" "${CMAKE_CURRENT_SOURCE_DIR}/jellyfin" "${CMAKE_CURRENT_SOURCE_DIR}/models"
   "${CMAKE_CURRENT_SOURCE_DIR}/playback" "${CMAKE_CURRENT_SOURCE_DIR}/player")
-target_link_libraries(ember PRIVATE
+target_link_libraries(ember_lib PUBLIC
   Qt6::Core Qt6::Gui Qt6::Quick Qt6::Network Qt6::DBus
   KF6::ConfigCore KF6::ConfigGui KF6::CoreAddons KF6::DBusAddons
   QCoro6::Core QCoro6::Network
   PkgConfig::MPV
   ember_player ember_playerplugin)
+
+qt_add_executable(ember main.cpp)
+target_link_libraries(ember PRIVATE ember_lib ember_libplugin)
 
 install(TARGETS ember RUNTIME DESTINATION bin)
 install(FILES ../dist/org.couchbox.ember.desktop DESTINATION share/applications)

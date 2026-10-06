@@ -1,0 +1,226 @@
+{
+ "Name": "Night of the Living Dead",
+ "OriginalTitle": "Night of the Living Dead",
+ "ServerId": "6c0898f9e2144e759dcbb04ff23db4ac",
+ "Id": "b1eefaa05b41a9b583ea980d5a60b8d7",
+ "DateCreated": "2026-10-06T02:19:31.6763375Z",
+ "HasSubtitles": true,
+ "Container": "mkv",
+ "SortName": "night of living dead",
+ "PremiereDate": "1968-10-04T00:00:00.0000000Z",
+ "CriticRating": 95,
+ "OfficialRating": "NR",
+ "ChannelId": null,
+ "Overview": "A ragtag group barricade themselves in an old Pennsylvania farmhouse to remain safe from a horde of flesh-eating ghouls ravaging the Northeast.",
+ "Taglines": [
+  "If it doesn't scare you, you're already dead!"
+ ],
+ "Genres": [
+  "Horror",
+  "Thriller",
+  "Science Fiction"
+ ],
+ "CommunityRating": 7.6,
+ "RunTimeTicks": 2400210000,
+ "ProductionYear": 1968,
+ "IsFolder": false,
+ "Type": "Movie",
+ "Studios": [
+  {
+   "Name": "Image Ten",
+   "Id": "854f5bfc5578a2f3091e976c6db65695"
+  }
+ ],
+ "GenreItems": [
+  {
+   "Name": "Horror",
+   "Id": "8b9bd9a3eddad02f2b759b4938fdd0b8"
+  },
+  {
+   "Name": "Thriller",
+   "Id": "4936f5b1a6f84f0b0aa2657368a5b364"
+  },
+  {
+   "Name": "Science Fiction",
+   "Id": "0430d514c35e1f158fa93f1eeb8361ea"
+  }
+ ],
+ "UserData": {
+  "PlayedPercentage": 44.18030089033876,
+  "PlaybackPositionTicks": 1060420000,
+  "PlayCount": 1,
+  "IsFavorite": false,
+  "LastPlayedDate": "2026-10-06T03:06:17.8326292Z",
+  "Played": false,
+  "Key": "b1eefaa0-5b41-a9b5-83ea-980d5a60b8d7",
+  "ItemId": "b1eefaa05b41a9b583ea980d5a60b8d7"
+ },
+ "MediaStreams": [
+  {
+   "Codec": "h264",
+   "TimeBase": "1/1000",
+   "VideoRange": "SDR",
+   "VideoRangeType": "SDR",
+   "AudioSpatialFormat": "None",
+   "DisplayTitle": "720p H264 SDR",
+   "NalLengthSize": "4",
+   "IsInterlaced": false,
+   "IsAVC": true,
+   "BitRate": 776235,
+   "BitDepth": 8,
+   "RefFrames": 1,
+   "IsDefault": false,
+   "IsForced": false,
+   "IsHearingImpaired": false,
+   "IsOriginal": false,
+   "Height": 720,
+   "Width": 1280,
+   "AverageFrameRate": 24,
+   "RealFrameRate": 24,
+   "ReferenceFrameRate": 24,
+   "Profile": "Constrained Baseline",
+   "Type": "Video",
+   "AspectRatio": "16:9",
+   "Index": 0,
+   "IsExternal": false,
+   "IsTextSubtitleStream": false,
+   "SupportsExternalStream": false,
+   "PixelFormat": "yuv420p",
+   "Level": 31,
+   "IsAnamorphic": false
+  },
+  {
+   "Codec": "ac3",
+   "Language": "eng",
+   "TimeBase": "1/1000",
+   "Title": "English 5.1",
+   "VideoRange": "Unknown",
+   "VideoRangeType": "Unknown",
+   "AudioSpatialFormat": "None",
+   "LocalizedDefault": "Default",
+   "LocalizedExternal": "External",
+   "LocalizedLanguage": "English",
+   "LocalizedOriginal": "Original",
+   "DisplayTitle": "English 5.1 - Dolby Digital - Default",
+   "IsInterlaced": false,
+   "ChannelLayout": "5.1",
+   "BitRate": 384000,
+   "Channels": 6,
+   "SampleRate": 48000,
+   "IsDefault": true,
+   "IsForced": false,
+   "IsHearingImpaired": false,
+   "IsOriginal": false,
+   "Type": "Audio",
+   "Index": 1,
+   "IsExternal": false,
+   "IsTextSubtitleStream": false,
+   "SupportsExternalStream": false
+  },
+  {
+   "Codec": "aac",
+   "Language": "fra",
+   "TimeBase": "1/1000",
+   "Title": "Fran\u00e7ais",
+   "VideoRange": "Unknown",
+   "VideoRangeType": "Unknown",
+   "AudioSpatialFormat": "None",
+   "LocalizedDefault": "Default",
+   "LocalizedExternal": "External",
+   "LocalizedLanguage": "French",
+   "LocalizedOriginal": "Original",
+   "DisplayTitle": "Fran\u00e7ais - French - AAC - Mono",
+   "IsInterlaced": false,
+   "ChannelLayout": "mono",
+   "BitRate": 192000,
+   "Channels": 1,
+   "SampleRate": 48000,
+   "IsDefault": false,
+   "IsForced": false,
+   "IsHearingImpaired": false,
+   "IsOriginal": false,
+   "Profile": "LC",
+   "Type": "Audio",
+   "Index": 2,
+   "IsExternal": false,
+   "IsTextSubtitleStream": false,
+   "SupportsExternalStream": false
+  },
+  {
+   "Codec": "subrip",
+   "Language": "eng",
+   "TimeBase": "1/1000",
+   "VideoRange": "Unknown",
+   "VideoRangeType": "Unknown",
+   "AudioSpatialFormat": "None",
+   "LocalizedUndefined": "Undefined",
+   "LocalizedDefault": "Default",
+   "LocalizedForced": "Forced",
+   "LocalizedExternal": "External",
+   "LocalizedHearingImpaired": "Hearing Impaired",
+   "LocalizedLanguage": "English",
+   "DisplayTitle": "English - Default - SUBRIP",
+   "IsInterlaced": false,
+   "IsDefault": true,
+   "IsForced": false,
+   "IsHearingImpaired": false,
+   "IsOriginal": false,
+   "Type": "Subtitle",
+   "Index": 3,
+   "IsExternal": false,
+   "IsTextSubtitleStream": true,
+   "SupportsExternalStream": true
+  },
+  {
+   "Codec": "subrip",
+   "Language": "fra",
+   "TimeBase": "1/1000",
+   "VideoRange": "Unknown",
+   "VideoRangeType": "Unknown",
+   "AudioSpatialFormat": "None",
+   "LocalizedUndefined": "Undefined",
+   "LocalizedDefault": "Default",
+   "LocalizedForced": "Forced",
+   "LocalizedExternal": "External",
+   "LocalizedHearingImpaired": "Hearing Impaired",
+   "LocalizedLanguage": "French",
+   "DisplayTitle": "French - SUBRIP",
+   "IsInterlaced": false,
+   "IsDefault": false,
+   "IsForced": false,
+   "IsHearingImpaired": false,
+   "IsOriginal": false,
+   "Type": "Subtitle",
+   "Index": 4,
+   "IsExternal": false,
+   "IsTextSubtitleStream": true,
+   "SupportsExternalStream": true
+  }
+ ],
+ "VideoType": "VideoFile",
+ "ImageTags": {
+  "Thumb": "bb14c960cae0e7d2f39465d87740276c",
+  "Primary": "dc9c52e7f31fd1ecd151e0156eae27fa",
+  "Logo": "b7c30b7a82aff9623007c7c00f577396"
+ },
+ "BackdropImageTags": [
+  "e9c15eededb7091cfdc29c03a23e1bc4"
+ ],
+ "ImageBlurHashes": {
+  "Backdrop": {
+   "e9c15eededb7091cfdc29c03a23e1bc4": "WTDStK?^nQ9FD*WC^8SOa1NFbaxaHs9FoIx]x[t5R5I:xZs:V@Rj"
+  },
+  "Thumb": {
+   "bb14c960cae0e7d2f39465d87740276c": "WB7nRR-;4nD%Rj9Fayj[ofWBRjof00IU?bxuof-;WBRjWBt7xuWB"
+  },
+  "Primary": {
+   "dc9c52e7f31fd1ecd151e0156eae27fa": "dEE{kN-;D%-;_3t79FIU-;WB009F-;xuRjxu9FWB9Fxu"
+  },
+  "Logo": {
+   "b7c30b7a82aff9623007c7c00f577396": "VGJxLjo12Ewx2Ea|wxa|sUsU,Y$5N]a|Jl|cWp,YWp,Y"
+  }
+ },
+ "LocationType": "FileSystem",
+ "MediaType": "Video",
+ "OriginalLanguage": "en"
+}

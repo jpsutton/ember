@@ -1,0 +1,150 @@
+{
+ "Name": "Mr. Denton on Doomsday",
+ "ServerId": "6c0898f9e2144e759dcbb04ff23db4ac",
+ "Id": "7fff2f2983c822d15bf59f9724940a74",
+ "DateCreated": "2026-10-06T02:19:37.9133719Z",
+ "Container": "mkv",
+ "SortName": "001 - 0003 - Mr. Denton on Doomsday",
+ "PremiereDate": "1959-10-16T00:00:00.0000000Z",
+ "OfficialRating": "TV-PG",
+ "ChannelId": null,
+ "Overview": "A has-been, drunk gunslinger finds his fast-draw abilities magically restored.",
+ "Taglines": [],
+ "Genres": [
+  "Drama",
+  "Fantasy",
+  "Horror"
+ ],
+ "CommunityRating": 7.029,
+ "RunTimeTicks": 1200210000,
+ "ProductionYear": 1959,
+ "IndexNumber": 3,
+ "ParentIndexNumber": 1,
+ "IsFolder": false,
+ "Type": "Episode",
+ "Studios": [],
+ "GenreItems": [
+  {
+   "Name": "Drama",
+   "Id": "090eac6e9de4fe1fbc194e5b96691277"
+  },
+  {
+   "Name": "Fantasy",
+   "Id": "a30dcc65be22eb3c21c03f7c1c7a57d1"
+  },
+  {
+   "Name": "Horror",
+   "Id": "8b9bd9a3eddad02f2b759b4938fdd0b8"
+  }
+ ],
+ "ParentLogoItemId": "d0ab188c9b45d1d42db9bd5a654f9a89",
+ "ParentBackdropItemId": "d0ab188c9b45d1d42db9bd5a654f9a89",
+ "ParentBackdropImageTags": [
+  "59b4325ab5d1cf7690afd841ff98e751"
+ ],
+ "UserData": {
+  "PlayedPercentage": 86.99894185184259,
+  "PlaybackPositionTicks": 1044170000,
+  "PlayCount": 1,
+  "IsFavorite": false,
+  "LastPlayedDate": "2026-10-06T03:03:27.9627034Z",
+  "Played": false,
+  "Key": "7fff2f29-83c8-22d1-5bf5-9f9724940a74",
+  "ItemId": "7fff2f2983c822d15bf59f9724940a74"
+ },
+ "SeriesName": "The Twilight Zone",
+ "SeriesId": "d0ab188c9b45d1d42db9bd5a654f9a89",
+ "SeasonId": "92be66ef918deebb6b99afad9fe38185",
+ "SeriesPrimaryImageTag": "4e4f5eeea1c401ba4e8b79cf561b8d88",
+ "SeasonName": "Season 1",
+ "MediaStreams": [
+  {
+   "Codec": "h264",
+   "TimeBase": "1/1000",
+   "VideoRange": "SDR",
+   "VideoRangeType": "SDR",
+   "AudioSpatialFormat": "None",
+   "DisplayTitle": "720p H264 SDR",
+   "NalLengthSize": "4",
+   "IsInterlaced": false,
+   "IsAVC": true,
+   "BitRate": 772462,
+   "BitDepth": 8,
+   "RefFrames": 1,
+   "IsDefault": false,
+   "IsForced": false,
+   "IsHearingImpaired": false,
+   "IsOriginal": false,
+   "Height": 720,
+   "Width": 1280,
+   "AverageFrameRate": 24,
+   "RealFrameRate": 24,
+   "ReferenceFrameRate": 24,
+   "Profile": "Constrained Baseline",
+   "Type": "Video",
+   "AspectRatio": "16:9",
+   "Index": 0,
+   "IsExternal": false,
+   "IsTextSubtitleStream": false,
+   "SupportsExternalStream": false,
+   "PixelFormat": "yuv420p",
+   "Level": 31,
+   "IsAnamorphic": false
+  },
+  {
+   "Codec": "aac",
+   "TimeBase": "1/1000",
+   "VideoRange": "Unknown",
+   "VideoRangeType": "Unknown",
+   "AudioSpatialFormat": "None",
+   "LocalizedDefault": "Default",
+   "LocalizedExternal": "External",
+   "LocalizedOriginal": "Original",
+   "DisplayTitle": "AAC - Mono",
+   "IsInterlaced": false,
+   "ChannelLayout": "mono",
+   "BitRate": 192000,
+   "Channels": 1,
+   "SampleRate": 48000,
+   "IsDefault": false,
+   "IsForced": false,
+   "IsHearingImpaired": false,
+   "IsOriginal": false,
+   "Profile": "LC",
+   "Type": "Audio",
+   "Index": 1,
+   "IsExternal": false,
+   "IsTextSubtitleStream": false,
+   "SupportsExternalStream": false
+  }
+ ],
+ "VideoType": "VideoFile",
+ "ImageTags": {
+  "Primary": "f883d1bbcab9e2467651814f4ec001c5"
+ },
+ "BackdropImageTags": [],
+ "ParentLogoImageTag": "65dd64bfe8c8a4c197a6afdec960f7c9",
+ "ImageBlurHashes": {
+  "Primary": {
+   "f883d1bbcab9e2467651814f4ec001c5": "W9Bz8}?bR%%M_3~qja4nIUofD%IUoM9F-;xuayWB~qt7?bofof-;",
+   "4e4f5eeea1c401ba4e8b79cf561b8d88": "dHF68|M{00t7?bj[Rjt7M{%MWBIUIUoffQt79FM{xuxu",
+   "7a6f6c7e130441faa8510f36a12f8a9b": "d~J96{t7NGtR~qt7WXt7-TjFt7t7ofWBxZt7kDkDofj@"
+  },
+  "Logo": {
+   "65dd64bfe8c8a4c197a6afdec960f7c9": "VOF$Y7of00t7M{IUofofay-;D%ayD%ofofayWBIURjt7"
+  },
+  "Thumb": {
+   "968530b37738f3721311a1513aa107cc": "WMB3+:9F9F~qIUM{t7tRM{WBxuM{IUxut7IUt7kCt7RjfQofRPfj"
+  },
+  "Backdrop": {
+   "59b4325ab5d1cf7690afd841ff98e751": "WC9tM*D%9F-;Rjt7~qIUD%%Mafays:ofM{j[s;RjWBxuWBM{t7WB"
+  }
+ },
+ "ParentThumbItemId": "d0ab188c9b45d1d42db9bd5a654f9a89",
+ "ParentThumbImageTag": "968530b37738f3721311a1513aa107cc",
+ "ParentPrimaryImageItemId": "92be66ef918deebb6b99afad9fe38185",
+ "ParentPrimaryImageTag": "7a6f6c7e130441faa8510f36a12f8a9b",
+ "LocationType": "FileSystem",
+ "MediaType": "Video",
+ "OriginalLanguage": "en"
+}

@@ -1,0 +1,26 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm --needed base-devel git cmake ninja \
+            qt6-base qt6-declarative mpv wayland wayland-protocols \
+            kconfig kcoreaddons kdbusaddons qcoro extra-cmake-modules
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=RelWithDebInfo -DEMBER_BUILD_DEV_TOOLS=ON
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Lint QML
+        run: cmake --build build --target all_qmllint

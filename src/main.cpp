@@ -12,6 +12,7 @@
 #include "app/SystemIntegration.h"
 #include "jellyfin/Session.h"
 
+Q_IMPORT_QML_PLUGIN(EmberPlugin)
 Q_IMPORT_QML_PLUGIN(Ember_PlayerPlugin)
 
 int main(int argc, char* argv[]) {

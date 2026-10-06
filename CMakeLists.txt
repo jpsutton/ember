@@ -25,7 +25,18 @@ pkg_check_modules(WAYLAND REQUIRED IMPORTED_TARGET wayland-client wayland-egl eg
 pkg_get_variable(WAYLAND_SCANNER wayland-scanner wayland_scanner)
 pkg_get_variable(WAYLAND_PROTOCOLS_DIR wayland-protocols pkgdatadir)
 
+option(EMBER_BUILD_TESTS "Build the unit tests" ON)
+option(EMBER_BUILD_DEV_TOOLS "Build the plane spike and the screenshot tool" OFF)
+
 add_subdirectory(src/player)
 add_subdirectory(src)
-add_subdirectory(spikes/plane)
-add_subdirectory(tools/ember-shot)
+
+if(EMBER_BUILD_DEV_TOOLS)
+  add_subdirectory(spikes/plane)
+  add_subdirectory(tools/ember-shot)
+endif()
+
+if(EMBER_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()

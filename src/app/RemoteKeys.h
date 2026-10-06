@@ -32,12 +32,14 @@ class RemoteKeys : public QObject {
 
   void setHoldMilliseconds(int ms) { hold_timer_.setInterval(ms); }
 
+  // The Qt key QML will see for |event|.
+  static int Normalize(const QKeyEvent* event);
+
  protected:
   bool eventFilter(QObject* watched, QEvent* event) override;
 
  private:
   void send(QWindow* window, int key, const QString& text = {});
-  static int Normalize(const QKeyEvent* event);
 
   QTimer hold_timer_;
   QPointer<QWindow> ok_window_;

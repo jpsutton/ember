@@ -42,7 +42,6 @@ FocusScope {
             visible: Session.discovering
             text: qsTr("Looking for servers…")
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.dim
         }
@@ -50,7 +49,6 @@ FocusScope {
             visible: Session.busy
             text: qsTr("Connecting…")
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.dim
         }

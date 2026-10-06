@@ -250,7 +250,7 @@ FocusScope {
             x: Theme.px(24)
             y: page.viewType === "low" ? Theme.px(24) : Theme.px(40)
             width: parent.width - Theme.px(48)
-            text: page.title.toUpperCase()
+            text: page.title
             elide: Text.ElideRight
             font.family: Theme.fontFamily
             font.pixelSize: Theme.px(28)
@@ -264,7 +264,6 @@ FocusScope {
             anchors.baseline: header.baseline
             text: page.view.count > 0 ? (page.view.currentIndex + 1) + " / " + items.totalCount : ""
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.smallFont
             color: Theme.dim
         }
@@ -403,7 +402,6 @@ FocusScope {
             text: items.loading ? qsTr("Loading…")
                   : (items.errorString !== "" ? items.errorString + "\n" + qsTr("OK tries again.") : qsTr("Nothing here."))
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: items.errorString !== "" ? Theme.error : Theme.dim
         }

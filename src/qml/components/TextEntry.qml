@@ -41,7 +41,6 @@ FocusScope {
         Text {
             text: root.label
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.dim
         }

@@ -54,7 +54,6 @@ FocusScope {
         y: Theme.px(90)
         text: qsTr("Settings")
         font.family: Theme.fontFamily
-        font.capitalization: Theme.caps
         font.pixelSize: Theme.titleFont
         font.bold: true
         color: Theme.text
@@ -86,7 +85,6 @@ FocusScope {
                 anchors.verticalCenter: parent.verticalCenter
                 text: row.modelData.title
                 font.family: Theme.fontFamily
-                font.capitalization: Theme.caps
                 font.pixelSize: Theme.rowFont
                 font.bold: row.current
                 color: row.current ? Theme.highlightText : Theme.text
@@ -97,7 +95,6 @@ FocusScope {
                 anchors.verticalCenter: parent.verticalCenter
                 text: row.modelData.detail
                 font.family: Theme.fontFamily
-                font.capitalization: Theme.caps
                 font.pixelSize: Theme.bodyFont
                 color: row.current ? Theme.highlightText : Theme.highlight
             }
@@ -116,7 +113,6 @@ FocusScope {
         anchors.bottomMargin: Theme.px(40)
         text: "Ember " + Qt.application.version
         font.family: Theme.fontFamily
-        font.capitalization: Theme.caps
         font.pixelSize: Theme.smallFont
         color: Theme.faint
     }

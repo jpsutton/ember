@@ -58,7 +58,6 @@ Item {
         text: pane.heading()
         elide: Text.ElideRight
         font.family: Theme.fontFamily
-        font.capitalization: Theme.caps
         font.pixelSize: Theme.px(64)
         font.bold: true
         color: Theme.text
@@ -91,7 +90,6 @@ Item {
             visible: text !== ""
             elide: Text.ElideRight
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.px(36)
             font.bold: true
             color: Theme.text
@@ -103,7 +101,6 @@ Item {
             visible: text !== ""
             wrapMode: Text.WordWrap
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.highlight
         }
@@ -160,7 +157,6 @@ Item {
             visible: text !== ""
             elide: Text.ElideRight
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.smallFont
             color: Theme.dim
         }
@@ -172,7 +168,6 @@ Item {
             visible: text !== ""
             elide: Text.ElideRight
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.smallFont
             font.bold: true
             color: Theme.dim

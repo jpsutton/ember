@@ -120,7 +120,6 @@ FocusScope {
         anchors.top: parent.top
         anchors.topMargin: Theme.px(36)
         font.family: Theme.fontFamily
-        font.capitalization: Theme.caps
         font.pixelSize: Theme.px(44)
         color: Theme.text
         style: Text.Outline
@@ -174,7 +173,7 @@ FocusScope {
         anchors.top: clock.bottom
         anchors.topMargin: Theme.px(6)
         visible: page.focused.kind === "library" && fanart.totalCount > 0 && !fanart.collections
-        text: (page.focused.title || "").toUpperCase() + "  " + fanart.totalCount
+        text: (page.focused.title || "") + "  " + fanart.totalCount
         font.family: Theme.fontFamily
         font.pixelSize: Theme.smallFont
         font.letterSpacing: Theme.px(1)

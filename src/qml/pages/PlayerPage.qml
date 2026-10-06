@@ -242,7 +242,6 @@ FocusScope {
         visible: playback.state === Playback.Loading || playback.buffering
         text: playback.state === Playback.Loading ? qsTr("Loading…") : qsTr("Buffering…")
         font.family: Theme.fontFamily
-        font.capitalization: Theme.caps
         font.pixelSize: Theme.rowFont
         color: Theme.text
         style: Text.Outline
@@ -289,7 +288,6 @@ FocusScope {
             anchors.centerIn: parent
             text: qsTr("OK: Skip intro")
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.rowFont
             font.bold: true
             color: Theme.highlightText
@@ -329,7 +327,6 @@ FocusScope {
             Text {
                 text: EmberSettings.autoPlayNext ? qsTr("Up next in %1").arg(Math.ceil(page.nextCountdown)) : qsTr("Up next")
                 font.family: Theme.fontFamily
-                font.capitalization: Theme.caps
                 font.pixelSize: Theme.smallFont
                 font.bold: true
                 color: Theme.highlight
@@ -339,14 +336,12 @@ FocusScope {
                 elide: Text.ElideRight
                 text: (playback.nextItem.episodeLabel || "") + "  " + (playback.nextItem.name || "")
                 font.family: Theme.fontFamily
-                font.capitalization: Theme.caps
                 font.pixelSize: Theme.rowFont
                 color: Theme.text
             }
             Text {
                 text: qsTr("OK: play now · Back: keep watching")
                 font.family: Theme.fontFamily
-                font.capitalization: Theme.caps
                 font.pixelSize: Theme.smallFont
                 color: Theme.dim
             }
@@ -379,7 +374,6 @@ FocusScope {
             elide: Text.ElideRight
             text: playback.title
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.px(44)
             font.bold: true
             color: Theme.text
@@ -391,7 +385,6 @@ FocusScope {
             elide: Text.ElideRight
             text: playback.subtitle
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.dim
         }
@@ -403,7 +396,6 @@ FocusScope {
             text: (playback.paused ? "❚❚  " : "")
                   + qsTr("Ends at %1").arg(Format.timeOfDay(playback.duration - playback.position))
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.text
         }
@@ -490,7 +482,6 @@ FocusScope {
             anchors.topMargin: Theme.px(16)
             text: Format.clock(bar.shown)
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: page.seekPreview >= 0 ? Theme.highlight : Theme.text
         }
@@ -500,7 +491,6 @@ FocusScope {
             anchors.topMargin: Theme.px(16)
             text: "-" + Format.clock(Math.max(0, playback.duration - bar.shown)) + "  /  " + Format.clock(playback.duration)
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.text
         }

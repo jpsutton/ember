@@ -58,7 +58,6 @@ ListView {
             text: row.label
             font.family: list.fontFamily
             font.pixelSize: list.fontSize
-            font.capitalization: Theme.caps
             color: row.current ? (list.barHighlight ? Theme.highlightText : Theme.highlight) : Theme.dim
         }
     }

@@ -23,11 +23,10 @@ QtObject {
     readonly property color panel: "#cc15161b"
     readonly property color error: "#ff7a6b"
 
-    // Amber's default fontset: Ubuntu Condensed in capitals for labels
-    // (long text such as plots keeps its case), Bebas Neue for the home menu.
+    // Amber's "Default no caps" fontset: Ubuntu Condensed, with Bebas Neue
+    // (capitals only) for the home menu.
     readonly property string fontFamily: "Ubuntu Condensed"
     readonly property string menuFontFamily: "Bebas Neue"
-    readonly property int caps: Font.AllUppercase
     readonly property int menuFont: px(48)
     readonly property int rowFont: px(30)
     readonly property int bodyFont: px(26)

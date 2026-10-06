@@ -47,7 +47,6 @@ FocusScope {
         Text {
             text: qsTr("Sign in to %1").arg(Session.serverName || Session.serverUrl)
             font.family: Theme.fontFamily
-            font.capitalization: Theme.caps
             font.pixelSize: Theme.titleFont
             font.bold: true
             color: Theme.text

@@ -26,7 +26,8 @@ newer couchbox.
 | M5 Amber parity | Done: side blade (sort, order, hide watched), A–Z strip, Channel ± paging, info page with cast, context menu, genres, years, collections, search, and the server's event stream (rows update when watched state changes elsewhere; lists reload after library changes). |
 | M6 polish | Done: trickplay preview on the seek bar, on-screen keyboard and search, Amber's Low, Tall, Big and Simple list styles besides List (remembered per library), home menu order and visibility, threaded render loop tried (no gain; basic kept). The GLib-free plane item is moot: the Qt port never used GLib. |
 | After first use | Amber's fonts (Ubuntu Condensed in capitals, Bebas Neue home menu), bundled. A library's home submenu offers Recently added and Recently aired (the library's playable items across all its shows: films, episodes); Recently aired places an episode a streaming service released before its air date at the date it was added. Phone typing through KDE Connect submits with Enter (KDE Connect itself drops Shift; couchbox `UPSTREAM-BUGS.md` #25). |
-| Multiple servers | Every server signed in to is kept, with its token and library choices; Left on Settings in the home menu offers Switch server (saved servers, Add a server). Libraries from several servers on one home menu at once: not yet. Shuffle for a show or season (view options), reshuffling through Up Next. |
+| Multiple servers | Every server signed in to is kept, with its token and library choices; Left on Settings in the home menu offers Switch server (saved servers, Add a server, Remove a server). Libraries from several servers on one home menu at once: not yet. Shuffle for a show or season (view options), reshuffling through Up Next. |
+| Typing | Text fields expect a keyboard (a real one, or a phone's through KDE Connect); the on-screen keyboard opens from a button inside the field, beside Paste. A password field empties the clipboard after pasting from it. Left/Right skip at once with a running total at the side (Plezy's behaviour). |
 | Later | Cast target done: other Jellyfin clients can play to Ember ("Play On", with a queue), control playback, navigate (arrows, OK, Back, Home, menu) and send messages. Shelves, music and refresh-rate switching not started. |
 
 ## Goal
@@ -486,11 +487,6 @@ the server, and continue to the next one, with Kodi left alone.
   today; KWin output management would be needed). A start is on branch
   `wip/refresh-rate`.
 - Libraries from several servers on one home menu at once.
-- Removing a saved server from Switch server (today only "Change server" on
-  the sign-in page drops one).
-- A paste key on the on-screen keyboard, for text sent with KDE Connect's
-  clipboard sharing (its remote input drops Shift: couchbox
-  `UPSTREAM-BUGS.md` #25).
 
 ## Testing
 

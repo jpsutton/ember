@@ -77,6 +77,11 @@ Left on Settings offers Switch server.
 
 When an episode ends, the next one starts after a short countdown.
 
+**Typing.** Text fields take typing from a keyboard, or from your phone
+through KDE Connect. With the remote, press Right in a field to reach
+Paste, which types whatever your phone shared to the clipboard, and the
+on-screen keyboard.
+
 ## Settings
 
 Settings is at the bottom of the home menu. It covers text size, the stereo

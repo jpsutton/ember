@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 
 #include <KDBusService>
+#include <KWindowSystem>
 
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
@@ -49,12 +50,15 @@ int main(int argc, char* argv[]) {
       Qt::QueuedConnection);
   engine.loadFromModule("Ember", "Main");
 
+  // KDBusService puts the launcher's XDG activation token in the
+  // environment; KWindowSystem hands it to KWin, which won't raise (or
+  // unminimize) a window without one on Wayland.
   QObject::connect(&service, &KDBusService::activateRequested, &engine, [&engine]() {
     for (QObject* object : engine.rootObjects()) {
       if (auto* window = qobject_cast<QWindow*>(object)) {
         window->show();
-        window->raise();
-        window->requestActivate();
+        KWindowSystem::updateStartupId(window);
+        KWindowSystem::activateWindow(window);
       }
     }
   });

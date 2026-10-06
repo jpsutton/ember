@@ -7,6 +7,8 @@ Run as root in the box's session seat. Each argument is one step:
     hold:NAME:SECS  hold the key for SECS seconds
     sleep:SECS      wait
     NAME*N          tap N times
+    chord:A+B       press A and B together (e.g. chord:LEFTMETA+HOMEPAGE,
+                    what fire-blaster sends for a held Home)
 
 The device emits evdev codes after the point where fire-blaster would have
 remapped a real remote, so what an app sees matches a remote press.
@@ -37,6 +39,17 @@ def main(steps):
         for step in steps:
             if step.startswith("sleep:"):
                 time.sleep(float(step.split(":", 1)[1]))
+                continue
+            if step.startswith("chord:"):
+                names = step.split(":", 1)[1].split("+")
+                for name in names:
+                    device.write(ecodes.EV_KEY, code(name), 1)
+                    device.syn()
+                time.sleep(TAP_SECONDS)
+                for name in reversed(names):
+                    device.write(ecodes.EV_KEY, code(name), 0)
+                    device.syn()
+                time.sleep(GAP_SECONDS)
                 continue
             hold = TAP_SECONDS
             count = 1

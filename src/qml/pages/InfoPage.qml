@@ -142,8 +142,8 @@ FocusScope {
 
         Text {
             width: parent.width
-            height: Math.min(implicitHeight, Theme.px(300))
-            clip: true
+            maximumLineCount: 7
+            elide: Text.ElideRight
             wrapMode: Text.WordWrap
             lineHeight: 1.15
             text: page.item.overview || ""

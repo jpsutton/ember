@@ -56,7 +56,7 @@ target_link_libraries(ember_lib PUBLIC
   ember_player ember_playerplugin)
 
 qt_add_executable(ember main.cpp)
-target_link_libraries(ember PRIVATE ember_lib ember_libplugin)
+target_link_libraries(ember PRIVATE ember_lib ember_libplugin KF6::WindowSystem)
 
 install(TARGETS ember RUNTIME DESTINATION bin)
 install(FILES ../dist/org.couchbox.ember.desktop DESTINATION share/applications)

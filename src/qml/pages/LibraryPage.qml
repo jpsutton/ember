@@ -164,6 +164,14 @@ FocusScope {
         ]
         const views = [["list", qsTr("List")], ["low", qsTr("Low list")], ["tall", qsTr("Tall list")],
                        ["big", qsTr("Big list")], ["simple", qsTr("Simple list")]]
+        // A show or one of its seasons plays in random order.
+        if (items.mode === "seasons" || items.mode === "episodes") {
+            add(qsTr("Shuffle"), "", () => {
+                // Back here, the rows show what the shuffle watched.
+                page.playedId = items.seriesId
+                page.app.playShuffled(items.seriesId, items.mode === "episodes" ? items.seasonId : "")
+            })
+        }
         add(qsTr("View"), (views.find(v => v[0] === page.viewType) || views[0])[1], () => {
             page.app.menu.open(qsTr("View"), views.map(v => ({ title: v[1], checked: v[0] === page.viewType })),
                                (i) => page.setViewType(views[i][0]), "left")

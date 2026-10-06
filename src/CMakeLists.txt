@@ -42,6 +42,7 @@ qt_add_qml_module(ember_lib
     models/ItemDetails.h models/ItemDetails.cpp
     models/ItemListModel.h models/ItemListModel.cpp
     playback/Playback.h playback/Playback.cpp
+    playback/Shuffle.h playback/Shuffle.cpp
 )
 
 target_compile_definitions(ember_lib PUBLIC EMBER_VERSION="${PROJECT_VERSION}")

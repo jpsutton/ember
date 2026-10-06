@@ -18,6 +18,7 @@
 #include "../jellyfin/Session.h"
 #include "../player/MpvVideo.h"
 #include "EmberSettings.h"
+#include "Shuffle.h"
 
 Q_LOGGING_CATEGORY(lcPlayback, "ember.playback")
 
@@ -138,10 +139,62 @@ void Playback::setError(const QString& error) {
   emit errorStringChanged();
 }
 
-void Playback::play(const QString& item_id, bool from_start) { playTask(item_id, from_start, -1, ++generation_); }
+void Playback::play(const QString& item_id, bool from_start) {
+  stopShuffle();
+  playTask(item_id, from_start, -1, ++generation_);
+}
 
 void Playback::playAt(const QString& item_id, double seconds) {
+  stopShuffle();
   playTask(item_id, false, std::max(0.0, seconds), ++generation_);
+}
+
+void Playback::shuffle(const QString& series_id, const QString& season_id) {
+  stopShuffle();
+  shuffleTask(series_id, season_id, ++generation_);
+}
+
+void Playback::stopShuffle() {
+  if (shuffle_aired_.isEmpty()) return;
+  shuffle_aired_.clear();
+  shuffle_queue_.clear();
+  emit shufflingChanged();
+}
+
+QCoro::Task<> Playback::shuffleTask(QString series_id, QString season_id, quint64 generation) {
+  QPointer<Playback> self(this);
+  setError(QString());
+  setState(State::Loading);
+  Session* session = Session::instance();
+  QUrlQuery query;
+  query.addQueryItem(QStringLiteral("userId"), session->userId());
+  query.addQueryItem(QStringLiteral("IsMissing"), QStringLiteral("false"));
+  if (!season_id.isEmpty()) query.addQueryItem(QStringLiteral("SeasonId"), season_id);
+  const Reply reply = co_await session->api()->get(QStringLiteral("/Shows/%1/Episodes").arg(series_id), query);
+  if (!self || generation != generation_) co_return;
+  if (!reply.ok()) {
+    setError(tr("Could not load the episodes (%1).").arg(reply.error));
+    setState(State::Failed);
+    co_return;
+  }
+  QStringList aired;
+  QStringList specials;
+  for (const QJsonValue& value : reply.object().value(QStringLiteral("Items")).toArray()) {
+    const QJsonObject episode = value.toObject();
+    const bool special = episode.value(QStringLiteral("ParentIndexNumber")).toInt(-1) == 0;
+    (special && season_id.isEmpty() ? specials : aired).append(Str(episode, "Id"));
+  }
+  // A show with nothing but specials shuffles those.
+  if (aired.isEmpty()) aired = specials;
+  if (aired.isEmpty()) {
+    setError(tr("There are no episodes to shuffle."));
+    setState(State::Failed);
+    co_return;
+  }
+  shuffle_aired_ = aired;
+  shuffle_queue_ = ShuffleOrder(aired, QString(), *QRandomGenerator::global());
+  emit shufflingChanged();
+  playTask(shuffle_queue_.takeFirst(), true, -1, generation);
 }
 
 QCoro::Task<> Playback::playTask(QString item_id, bool from_start, double start_seconds, quint64 generation) {
@@ -601,6 +654,11 @@ void Playback::playNext() {
   const QString id = next_item_.value(QStringLiteral("id")).toString();
   if (id.isEmpty()) return;
   mark_previous_played_ = true;
+  if (shuffling()) {
+    if (!shuffle_queue_.isEmpty() && shuffle_queue_.first() == id) shuffle_queue_.removeFirst();
+    playTask(id, true, -1, ++generation_);
+    return;
+  }
   play(id, next_item_.value(QStringLiteral("played")).toBool());
 }
 
@@ -672,8 +730,26 @@ QCoro::Task<> Playback::loadSegments(QString item_id, quint64 generation) {
 
 QCoro::Task<> Playback::loadNextItem(QJsonObject item, quint64 generation) {
   QPointer<Playback> self(this);
-  if (Str(item, "Type") != QLatin1String("Episode") || Str(item, "SeriesId").isEmpty()) co_return;
   Session* session = Session::instance();
+  if (shuffling()) {
+    // Once every episode has played, shuffle them all again.
+    if (shuffle_queue_.isEmpty() && shuffle_aired_.size() > 1) {
+      shuffle_queue_ = ShuffleOrder(shuffle_aired_, Str(item, "Id"), *QRandomGenerator::global());
+    }
+    if (shuffle_queue_.isEmpty()) co_return;
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("userId"), session->userId());
+    query.addQueryItem(QStringLiteral("Ids"), shuffle_queue_.first());
+    query.addQueryItem(QStringLiteral("Fields"), jellyfin::ListFields());
+    const Reply reply = co_await session->api()->get(QStringLiteral("/Items"), query);
+    if (!self || generation != generation_ || !reply.ok()) co_return;
+    const QJsonArray items = reply.object().value(QStringLiteral("Items")).toArray();
+    if (items.isEmpty()) co_return;
+    next_item_ = jellyfin::ItemToVariant(items.first().toObject(), session->api());
+    emit nextItemChanged();
+    co_return;
+  }
+  if (Str(item, "Type") != QLatin1String("Episode") || Str(item, "SeriesId").isEmpty()) co_return;
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("userId"), session->userId());
   query.addQueryItem(QStringLiteral("StartItemId"), Str(item, "Id"));

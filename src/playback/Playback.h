@@ -51,6 +51,9 @@ class Playback : public QObject {
   Q_PROPERTY(double creditsStart READ creditsStart NOTIFY segmentsChanged)
   // The episode after this one, or empty.
   Q_PROPERTY(QVariantMap nextItem READ nextItem NOTIFY nextItemChanged)
+  // Playing a show or season in random order (shuffle()); nextItem is then
+  // a random episode rather than the following one.
+  Q_PROPERTY(bool shuffling READ shuffling NOTIFY shufflingChanged)
   // {url (with %1 for the tile index), width, height, tileWidth, tileHeight,
   //  count, interval (seconds)}, or empty.
   Q_PROPERTY(QVariantMap trickplay READ trickplay NOTIFY itemChanged)
@@ -84,12 +87,18 @@ class Playback : public QObject {
   double introEnd() const { return intro_end_; }
   double creditsStart() const { return credits_start_; }
   QVariantMap nextItem() const { return next_item_; }
+  bool shuffling() const { return !shuffle_aired_.isEmpty(); }
   QVariantMap trickplay() const { return trickplay_; }
 
   // Starts |item_id|, resuming from the saved position unless |from_start|.
   Q_INVOKABLE void play(const QString& item_id, bool from_start = false);
   // Starts |item_id| at |seconds| (a remote "Play On" request).
   Q_INVOKABLE void playAt(const QString& item_id, double seconds);
+  // Plays the episodes of |series_id| in random order, or only those of
+  // |season_id| when it is set (the show's specials are left out). Each
+  // episode starts from the beginning, and once all have played the order
+  // is shuffled again, so with auto-play on it carries on until stopped.
+  Q_INVOKABLE void shuffle(const QString& series_id, const QString& season_id = QString());
   // Stops and reports the position; emits finished().
   Q_INVOKABLE void stop();
   Q_INVOKABLE void togglePause();
@@ -115,6 +124,7 @@ class Playback : public QObject {
   void tracksChanged();
   void segmentsChanged();
   void nextItemChanged();
+  void shufflingChanged();
   // Playback ended by the user or at the end of the file, and the server
   // has been told. |completed| is true at the natural end.
   void finished(bool completed);
@@ -135,6 +145,8 @@ class Playback : public QObject {
   QCoro::Task<bool> negotiate(double start_seconds, quint64 generation);
   QCoro::Task<> loadSegments(QString item_id, quint64 generation);
   QCoro::Task<> loadNextItem(QJsonObject item, quint64 generation);
+  QCoro::Task<> shuffleTask(QString series_id, QString season_id, quint64 generation);
+  void stopShuffle();
   QCoro::Task<> report(QString what);
   QJsonObject deviceProfile() const;
   QJsonObject progressBody() const;
@@ -171,6 +183,9 @@ class Playback : public QObject {
   double intro_end_ = -1;
   double credits_start_ = -1;
   QVariantMap next_item_;
+  // Shuffle: the episodes in airing order, and those still to play.
+  QStringList shuffle_aired_;
+  QStringList shuffle_queue_;
   QVariantMap trickplay_;
   QVariantList mpv_tracks_;
   bool started_reported_ = false;

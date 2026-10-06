@@ -19,6 +19,10 @@ FocusScope {
     // Set by a remote "Play On" request: where to start, and what follows.
     property real startSeconds: -1
     property var queue: []
+    // Set by Shuffle in a show's or season's view options: play its
+    // episodes in random order instead of itemId.
+    property string shuffleSeriesId
+    property string shuffleSeasonId
     property bool osdVisible: true
     // The Up Next card was dismissed for this item.
     property bool nextDismissed: false
@@ -162,7 +166,8 @@ FocusScope {
     }
 
     Component.onCompleted: {
-        if (startSeconds >= 0) playback.playAt(itemId, startSeconds)
+        if (shuffleSeriesId !== "") playback.shuffle(shuffleSeriesId, shuffleSeasonId)
+        else if (startSeconds >= 0) playback.playAt(itemId, startSeconds)
         else playback.play(itemId, fromStart)
     }
     Component.onDestruction: if (playback.state === Playback.Playing || playback.state === Playback.Loading) playback.stop()
@@ -325,7 +330,8 @@ FocusScope {
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.px(6)
             Text {
-                text: EmberSettings.autoPlayNext ? qsTr("Up next in %1").arg(Math.ceil(page.nextCountdown)) : qsTr("Up next")
+                text: (playback.shuffling ? qsTr("Shuffle") + " · " : "")
+                      + (EmberSettings.autoPlayNext ? qsTr("Up next in %1").arg(Math.ceil(page.nextCountdown)) : qsTr("Up next"))
                 font.family: Theme.fontFamily
                 font.pixelSize: Theme.smallFont
                 font.bold: true

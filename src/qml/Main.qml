@@ -95,6 +95,11 @@ Window {
         stack.push(playerPage, { itemId: item.id, fromStart: fromStart === true })
     }
 
+    // A show's episodes in random order, or one season's.
+    function playShuffled(seriesId, seasonId) {
+        stack.push(playerPage, { shuffleSeriesId: seriesId, shuffleSeasonId: seasonId || "" })
+    }
+
     function openInfo(item, context) {
         stack.push(infoPage, { itemId: item.id, context: context || {} })
     }

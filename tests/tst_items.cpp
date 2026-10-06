@@ -9,6 +9,7 @@
 
 #include "jellyfin/ApiClient.h"
 #include "jellyfin/Items.h"
+#include "playback/Shuffle.h"
 
 using ember::jellyfin::ApiClient;
 
@@ -122,6 +123,36 @@ class TestItems : public QObject {
     if (!premiere.isEmpty()) item.insert(QStringLiteral("PremiereDate"), premiere);
     if (!created.isEmpty()) item.insert(QStringLiteral("DateCreated"), created);
     QCOMPARE(ember::jellyfin::AiredDate(item), QDateTime::fromString(aired, Qt::ISODate));
+  }
+
+  void shuffleOrder() {
+    QStringList aired;
+    for (int i = 1; i <= 10; ++i) aired << QStringLiteral("e%1").arg(i);
+    QRandomGenerator random(7);
+    for (int run = 0; run < 200; ++run) {
+      const QString previous = aired.at(run % aired.size());
+      const QStringList order = ember::ShuffleOrder(aired, previous, random);
+      QStringList sorted = order;
+      std::sort(sorted.begin(), sorted.end(), [&](const QString& a, const QString& b) {
+        return aired.indexOf(a) < aired.indexOf(b);
+      });
+      QCOMPARE(sorted, aired);
+      // Never an episode and the one that aired after it, back to back.
+      for (qsizetype i = 0; i + 1 < order.size(); ++i) {
+        QVERIFY(aired.indexOf(order.at(i + 1)) != aired.indexOf(order.at(i)) + 1);
+      }
+      // Nor straight on from the episode just played.
+      QVERIFY(order.first() != previous);
+      QVERIFY(aired.indexOf(order.first()) != aired.indexOf(previous) + 1);
+    }
+  }
+
+  void shuffleOrderSmall() {
+    QRandomGenerator random(1);
+    QCOMPARE(ember::ShuffleOrder({QStringLiteral("a")}, QString(), random), QStringList{QStringLiteral("a")});
+    // Two episodes: only "b, a" avoids playing them in order.
+    QCOMPARE(ember::ShuffleOrder({QStringLiteral("a"), QStringLiteral("b")}, QString(), random),
+             (QStringList{QStringLiteral("b"), QStringLiteral("a")}));
   }
 
   void authorization() {

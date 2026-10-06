@@ -104,7 +104,7 @@ Window {
         stack.push(infoPage, { itemId: item.id, context: context || {} })
     }
 
-    // The saved servers to switch to, and adding another.
+    // The saved servers to switch to, adding another, and removing one.
     function switchServer() {
         const accounts = Session.accounts
         const options = accounts.map(a => ({
@@ -112,10 +112,26 @@ Window {
             detail: a.signedIn ? a.userName : qsTr("Not signed in")
         }))
         options.push({ title: qsTr("Add a server") })
+        if (accounts.length > 0) options.push({ title: qsTr("Remove a server") })
         menu.open(qsTr("Switch server"), options, (i) => {
             if (i < accounts.length) Session.switchAccount(accounts[i].serverId)
-            else Session.addServer()
+            else if (i === accounts.length) Session.addServer()
+            else removeServer()
         }, "left", Math.max(0, accounts.findIndex(a => a.active)))
+    }
+
+    // Which saved server to forget, then a confirmation (Cancel first).
+    function removeServer() {
+        const accounts = Session.accounts
+        menu.open(qsTr("Remove a server"), accounts.map(a => ({
+            title: a.name, detail: a.signedIn ? a.userName : qsTr("Not signed in")
+        })), (i) => {
+            const account = accounts[i]
+            menu.open(qsTr("Remove %1?").arg(account.name), [
+                { title: qsTr("Remove"), detail: qsTr("Signs out and forgets it") },
+                { title: qsTr("Cancel") },
+            ], (choice) => { if (choice === 0) Session.removeAccount(account.serverId) }, "left", 1)
+        }, "left")
     }
 
     function goHome() {

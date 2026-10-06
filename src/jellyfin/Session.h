@@ -104,6 +104,9 @@ class Session : public QObject {
   Q_INVOKABLE void addServer();
   // Back from the picker to the server in use before addServer().
   Q_INVOKABLE void cancelAddServer();
+  // Signs out of a saved server and forgets it. Removing the one in use
+  // moves to another saved server, or to the picker when none is left.
+  Q_INVOKABLE void removeAccount(const QString& server_id);
   Q_INVOKABLE void signIn(const QString& user, const QString& password);
   Q_INVOKABLE void startQuickConnect();
   Q_INVOKABLE void cancelQuickConnect();
@@ -167,6 +170,8 @@ class Session : public QObject {
   QCoro::Task<> quickConnectTask();
   QCoro::Task<> refreshLibrariesTask();
   QCoro::Task<> validateSessionTask();
+  // Ends a saved server's session (its token) on that server.
+  QCoro::Task<> logoutTask(QString url, QString token);
   void finishSignIn(const QJsonObject& authentication);
   void setState(State state);
   void setBusy(bool busy);

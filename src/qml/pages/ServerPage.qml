@@ -38,28 +38,17 @@ FocusScope {
             font.pixelSize: Theme.rowFont
             color: Theme.text
         }
+        // One status line that always keeps its place, so the servers below
+        // don't move when the search ends.
         Text {
-            visible: Session.discovering
-            text: qsTr("Looking for servers…")
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.bodyFont
-            color: Theme.dim
-        }
-        Text {
-            visible: Session.busy
-            text: qsTr("Connecting…")
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.bodyFont
-            color: Theme.dim
-        }
-        Text {
-            visible: Session.errorString !== ""
             width: parent.width
-            wrapMode: Text.WordWrap
-            text: Session.errorString
+            elide: Text.ElideRight
+            text: Session.errorString !== "" ? Session.errorString
+                  : Session.busy ? qsTr("Connecting…")
+                  : Session.discovering ? qsTr("Looking for servers…") : " "
             font.family: Theme.fontFamily
             font.pixelSize: Theme.bodyFont
-            color: Theme.error
+            color: Session.errorString !== "" ? Theme.error : Theme.dim
         }
 
         MenuList {

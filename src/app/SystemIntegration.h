@@ -96,6 +96,23 @@ class KeyInjector : public QObject {
   Q_INVOKABLE void press(int key) const;
 };
 
+// The system clipboard, for the Paste button in text fields. KDE Connect's
+// clipboard sharing puts text sent from a phone there.
+class Clipboard : public QObject {
+  Q_OBJECT
+  QML_ELEMENT
+  QML_SINGLETON
+
+ public:
+  using QObject::QObject;
+
+  // The clipboard's text, line breaks and surrounding spaces removed (a
+  // field is one line).
+  Q_INVOKABLE QString text() const;
+  // Empties it, after a password was pasted.
+  Q_INVOKABLE void clear() const;
+};
+
 // Formatting helpers for QML.
 class Format : public QObject {
   Q_OBJECT

@@ -15,6 +15,7 @@ qt_add_qml_module(ember_lib
     qml/components/Backdrop.qml
     qml/components/BigRow.qml
     qml/components/DetailsPane.qml
+    qml/components/FieldButton.qml
     qml/components/ItemRow.qml
     qml/components/Keyboard.qml
     qml/components/ListScrollBar.qml

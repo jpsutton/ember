@@ -117,6 +117,36 @@ class TestSession : public QObject {
     QCOMPARE(session.serverName(), QStringLiteral("Home"));
   }
 
+  void removesASavedServer() {
+    writeOldLayout();
+    { Session(nullptr).addServer(); }
+    addSecondServer();
+    Session session(nullptr);
+    // Not the one in use: it just goes.
+    session.removeAccount(QStringLiteral("server-b"));
+    QCOMPARE(session.accounts().size(), 1);
+    QCOMPARE(session.serverName(), QStringLiteral("Home"));
+    QCOMPARE(session.state(), Session::State::SignedIn);
+    // The one in use, with nothing left: back to the picker.
+    session.removeAccount(QStringLiteral("server-a"));
+    QCOMPARE(session.accounts().size(), 0);
+    QCOMPARE(session.state(), Session::State::NoServer);
+    QVERIFY(!session.canCancelAddServer());
+    KConfig config(path(), KConfig::SimpleConfig);
+    QVERIFY(!config.hasGroup(QStringLiteral("Account server-a")));
+  }
+
+  void removingTheServerInUseMovesToAnother() {
+    writeOldLayout();
+    { Session(nullptr).addServer(); }
+    addSecondServer();
+    Session session(nullptr);
+    session.removeAccount(QStringLiteral("server-a"));
+    QCOMPARE(session.accounts().size(), 1);
+    QCOMPARE(session.serverName(), QStringLiteral("Test"));
+    QCOMPARE(session.state(), Session::State::SignedIn);
+  }
+
   void forgettingDropsOnlyThatServer() {
     writeOldLayout();
     { Session(nullptr).addServer(); }

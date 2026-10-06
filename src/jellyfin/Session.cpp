@@ -305,6 +305,42 @@ void Session::cancelAddServer() {
   if (!previous_server_id_.isEmpty()) switchAccount(previous_server_id_);
 }
 
+void Session::removeAccount(const QString& server_id) {
+  Account removed;
+  for (const Account& account : accounts_) {
+    if (account.server_id == server_id) removed = account;
+  }
+  if (removed.server_id.isEmpty()) return;
+  const bool active = server_id == server_id_;
+  if (active) removed = currentAccount();
+  if (!removed.token.isEmpty()) logoutTask(removed.url, removed.token);
+  accounts_.removeIf([&server_id](const Account& account) { return account.server_id == server_id; });
+  if (previous_server_id_ == server_id) previous_server_id_.clear();
+  qCInfo(lcSession).noquote() << "removed" << removed.name << removed.url;
+  if (!active) {
+    save();
+    return;
+  }
+  events_->stop();
+  clearCurrent();
+  if (!accounts_.isEmpty()) {
+    switchAccount(accounts_.first().server_id);
+    return;
+  }
+  save();
+  setState(State::NoServer);
+}
+
+QCoro::Task<> Session::logoutTask(QString url, QString token) {
+  // A client of its own: the session's points at the server in use.
+  auto* client = new ApiClient(network_, api_->deviceId(), this);
+  client->setBaseUrl(QUrl(url));
+  client->setToken(token);
+  QPointer<ApiClient> guard(client);
+  co_await client->post(QStringLiteral("/Sessions/Logout"));
+  if (guard) guard->deleteLater();
+}
+
 QString Session::serverUrl() const { return api_->baseUrl().toString(); }
 
 QVariantList Session::libraries() const {

@@ -9,6 +9,7 @@
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <QDBusReply>
+#include <QClipboard>
 #include <QDateTime>
 #include <QDir>
 #include <QGuiApplication>
@@ -130,6 +131,14 @@ void KeyInjector::press(int key) const {
   QCoreApplication::sendEvent(window, &press);
   QCoreApplication::sendEvent(window, &release);
 }
+
+QString Clipboard::text() const {
+  QString text = QGuiApplication::clipboard()->text();
+  text.replace(QLatin1Char('\r'), QLatin1Char(' ')).replace(QLatin1Char('\n'), QLatin1Char(' '));
+  return text.trimmed();
+}
+
+void Clipboard::clear() const { QGuiApplication::clipboard()->clear(QClipboard::Clipboard); }
 
 QString Format::spelloutDuration(double seconds) const {
   if (seconds <= 0) return {};

@@ -2,8 +2,8 @@
 import QtQuick
 import Ember
 
-// Type with the on-screen keyboard; results update as you type. Right or
-// Down from the keyboard's right edge moves to the results.
+// Type the search; results update as you go. Right from the field's last
+// button, or OK, moves to the results.
 FocusScope {
     id: page
 

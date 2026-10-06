@@ -483,7 +483,14 @@ the server, and continue to the next one, with Kodi left alone.
   and websocket Playstate/Play commands.
 - Music libraries.
 - Refresh-rate switching for 24p content (no couchbox component does this
-  today; KWin output management would be needed).
+  today; KWin output management would be needed). A start is on branch
+  `wip/refresh-rate`.
+- Libraries from several servers on one home menu at once.
+- Removing a saved server from Switch server (today only "Change server" on
+  the sign-in page drops one).
+- A paste key on the on-screen keyboard, for text sent with KDE Connect's
+  clipboard sharing (its remote input drops Shift: couchbox
+  `UPSTREAM-BUGS.md` #25).
 
 ## Testing
 
@@ -569,7 +576,6 @@ the server, and continue to the next one, with Kodi left alone.
   which gives them to Plasma).
 - Pause on minimize through couchbox-focus (not in 0.9.0); its MPRIS Pause
   call itself works.
-- A real library on a real server (only the dev server has been used).
 - Media segments (needs the Intro Skipper plugin; the chapter-name
   fallback is tested), burned-in bitmap subtitles during a transcode,
   playback on the NUC itself.
@@ -579,4 +585,5 @@ the server, and continue to the next one, with Kodi left alone.
 ## Open questions
 
 1. ~~Jellyfin server version~~: the dev server runs 12.2.0; the user's
-   server version is still unknown.
+   server runs 10.11.11, and Ember browses and plays from it on the BRIX
+   and the NUC.

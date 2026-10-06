@@ -11,6 +11,9 @@
 #include <QDBusReply>
 #include <QDateTime>
 #include <QDir>
+#include <QGuiApplication>
+#include <QKeyEvent>
+#include <QWindow>
 #include <QLocale>
 #include <QLoggingCategory>
 #include <QNetworkAccessManager>
@@ -113,6 +116,19 @@ QNetworkAccessManager* ImageNetworkFactory::create(QObject* parent) {
   cache->setMaximumCacheSize(qint64(500) * 1024 * 1024);
   manager->setCache(cache);
   return manager;
+}
+
+void KeyInjector::press(int key) const {
+  QWindow* window = QGuiApplication::focusWindow();
+  if (window == nullptr) {
+    const QWindowList windows = QGuiApplication::topLevelWindows();
+    if (windows.isEmpty()) return;
+    window = windows.first();
+  }
+  QKeyEvent press(QEvent::KeyPress, key, Qt::NoModifier);
+  QKeyEvent release(QEvent::KeyRelease, key, Qt::NoModifier);
+  QCoreApplication::sendEvent(window, &press);
+  QCoreApplication::sendEvent(window, &release);
 }
 
 QString Format::spelloutDuration(double seconds) const {

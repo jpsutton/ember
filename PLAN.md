@@ -23,7 +23,8 @@ newer couchbox.
 | M3 lists | Done: Amber List view, paging, drill-down show → season → episodes (one-season shows skip the season list), position kept on Back. |
 | M4 playback | Done: direct play and HLS transcode, resume, progress reports, audio/subtitle menus, chapters, skip intro (chapter fallback), Up Next with auto-play, MPRIS, screen-saver inhibit. couchbox packaging prepared (couchbox branch `feat/ember`, not pushed). |
 | M5 Amber parity | Done: side blade (sort, order, hide watched), A–Z strip, Channel ± paging, info page with cast, context menu, genres, years, collections, search, and the server's event stream (rows update when watched state changes elsewhere; lists reload after library changes). |
-| M6 polish | Partly: trickplay preview on the seek bar (tested), on-screen keyboard, search. Not done: list variants, home menu editing, threaded render loop trial. (The GLib-free plane item is moot: the Qt port never used GLib.) |
+| M6 polish | Done except Amber's Low and Simple list styles: trickplay preview on the seek bar, on-screen keyboard and search, Tall and Big list styles (remembered per library), home menu order and visibility, threaded render loop tried (no gain; basic kept). The GLib-free plane item is moot: the Qt port never used GLib. |
+| Later | Cast target done: other Jellyfin clients can play to Ember ("Play On", with a queue), control playback, navigate (arrows, OK, Back, Home, menu) and send messages. Shelves, music and refresh-rate switching not started. |
 
 ## Goal
 

@@ -138,9 +138,13 @@ void Playback::setError(const QString& error) {
   emit errorStringChanged();
 }
 
-void Playback::play(const QString& item_id, bool from_start) { playTask(item_id, from_start, ++generation_); }
+void Playback::play(const QString& item_id, bool from_start) { playTask(item_id, from_start, -1, ++generation_); }
 
-QCoro::Task<> Playback::playTask(QString item_id, bool from_start, quint64 generation) {
+void Playback::playAt(const QString& item_id, double seconds) {
+  playTask(item_id, false, std::max(0.0, seconds), ++generation_);
+}
+
+QCoro::Task<> Playback::playTask(QString item_id, bool from_start, double start_seconds, quint64 generation) {
   QPointer<Playback> self(this);
   if (session_open_) {
     // Switching items (next episode): close the old session first.
@@ -238,7 +242,7 @@ QCoro::Task<> Playback::playTask(QString item_id, bool from_start, quint64 gener
   emit itemChanged();
 
   const qint64 saved = item_json_.value(QStringLiteral("UserData")).toObject().value(QStringLiteral("PlaybackPositionTicks")).toInteger();
-  start_seconds_ = from_start ? 0 : Seconds(saved);
+  start_seconds_ = start_seconds >= 0 ? start_seconds : from_start ? 0 : Seconds(saved);
   audio_index_ = -1;
   subtitle_index_ = -2;  // not chosen yet
   if (!co_await negotiate(start_seconds_, generation)) co_return;

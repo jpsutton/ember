@@ -115,6 +115,10 @@ class Session : public QObject {
   // From the server's event stream.
   void userDataChanged(const QString& itemId);
   void libraryChanged();
+  // Remote control from another Jellyfin client ("Play On").
+  void remotePlay(const QStringList& itemIds, double startSeconds, int startIndex, const QString& command);
+  void remotePlaystate(const QString& command, double seekSeconds);
+  void remoteCommand(const QString& name, const QVariantMap& arguments);
 
  private:
   struct Library {

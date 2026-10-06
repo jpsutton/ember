@@ -129,9 +129,48 @@ Window {
         else stack.replace(null, homePage)
     }
 
+    // The player page, when it is the one on screen.
+    function player() {
+        return stack.currentItem && stack.currentItem.objectName === "player" ? stack.currentItem : null
+    }
+
     Connections {
         target: Session
         function onStateChanged() { window.resetFlow() }
+
+        // "Play On" from another Jellyfin client.
+        function onRemotePlay(itemIds, startSeconds, startIndex, command) {
+            if (itemIds.length === 0 || !Session.librariesChosen) return
+            const index = Math.max(0, Math.min(itemIds.length - 1, startIndex))
+            const current = window.player()
+            if (current) {
+                current.playQueue(itemIds, index, startSeconds, command)
+            } else {
+                stack.push(playerPage, { itemId: itemIds[index], startSeconds: startSeconds > 0 ? startSeconds : -1,
+                                         queue: itemIds.slice(index + 1) })
+            }
+            window.raise()
+            window.requestActivate()
+        }
+        function onRemotePlaystate(command, seekSeconds) {
+            const current = window.player()
+            if (current) current.remoteControl(command, seekSeconds)
+        }
+        function onRemoteCommand(name, args) {
+            const keys = {
+                MoveUp: Qt.Key_Up, MoveDown: Qt.Key_Down, MoveLeft: Qt.Key_Left, MoveRight: Qt.Key_Right,
+                PageUp: Qt.Key_PageUp, PageDown: Qt.Key_PageDown, Select: Qt.Key_Return, Back: Qt.Key_Back,
+                GoHome: Qt.Key_HomePage, ToggleContextMenu: Qt.Key_Menu, ToggleOsd: Qt.Key_Info
+            }
+            if (keys[name] !== undefined) {
+                KeyInjector.press(keys[name])
+            } else if (name === "DisplayMessage") {
+                toast.show(args.Header || "", args.Text || "", Number(args.TimeoutMs) || 5000)
+            } else if (name === "SetAudioStreamIndex" || name === "SetSubtitleStreamIndex") {
+                const current = window.player()
+                if (current) current.remoteTrack(name, Number(args.Index))
+            }
+        }
         function onLibrariesChanged() {
             if (Session.state === Session.SignedIn && Session.librariesChosen && stack.currentItem
                     && stack.currentItem.objectName === "libraryPicker" && stack.currentItem.firstRun) {
@@ -160,6 +199,61 @@ Window {
 
         PopupMenu {
             id: menu
+        }
+
+        // A message sent from another Jellyfin client.
+        Rectangle {
+            id: toast
+            z: 200
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: Theme.px(60)
+            width: toastColumn.width + Theme.px(80)
+            height: toastColumn.implicitHeight + Theme.px(40)
+            radius: Theme.px(12)
+            color: Theme.blade
+            border.color: Theme.highlight
+            border.width: Theme.px(2)
+            visible: false
+
+            function show(header, text, timeout) {
+                toastHeader.text = header
+                toastText.text = text
+                visible = true
+                toastTimer.interval = Math.max(2000, Math.min(timeout, 30000))
+                toastTimer.restart()
+            }
+
+            Timer {
+                id: toastTimer
+                onTriggered: toast.visible = false
+            }
+
+            Column {
+                id: toastColumn
+                anchors.centerIn: parent
+                // A wrapped Text's implicit width is its unwrapped width, so
+                // this has no loop through the children's widths.
+                width: Math.min(Math.max(toastHeader.implicitWidth, toastText.implicitWidth), root.width * 0.6)
+                spacing: Theme.px(6)
+                Text {
+                    id: toastHeader
+                    visible: text !== ""
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.rowFont
+                    font.bold: true
+                    color: Theme.highlight
+                }
+                Text {
+                    id: toastText
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    font.family: Theme.fontFamily
+                    font.pixelSize: Theme.bodyFont
+                    color: Theme.text
+                }
+            }
         }
 
         // Keys no page took.

@@ -27,6 +27,10 @@ all driven by a TV remote. Qt 6 (QML) and C++, with mpv for playback.
   playback. Near the end of an episode the next one is offered and starts by
   itself after a countdown.
 
+Other Jellyfin clients see Ember as a device to play to: "Play On" from the
+Jellyfin phone app starts playback on the TV, and its remote control pauses,
+seeks, skips, moves around the menus and sends messages.
+
 Settings (interface size, downmix and dialogue boost, streaming quality,
 subtitles, next-episode behaviour, seek step) are on the home menu and are
 saved in `~/.config/emberrc`. The session, which holds the access token, is

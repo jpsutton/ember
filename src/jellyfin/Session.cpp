@@ -91,6 +91,16 @@ void Session::load() {
   connect(events_, &EventSocket::userDataChanged, this,
           [this](const QString& item_id, const QJsonObject&) { emit userDataChanged(item_id); });
   connect(events_, &EventSocket::libraryChanged, this, &Session::libraryChanged);
+  connect(events_, &EventSocket::playRequested, this,
+          [this](const QStringList& ids, qint64 start_ticks, int start_index, const QString& command) {
+            emit remotePlay(ids, start_ticks / 1e7, start_index, command);
+          });
+  connect(events_, &EventSocket::playstateRequested, this, [this](const QString& command, qint64 seek_ticks) {
+    emit remotePlaystate(command, seek_ticks / 1e7);
+  });
+  connect(events_, &EventSocket::generalCommand, this, [this](const QString& name, const QJsonObject& arguments) {
+    emit remoteCommand(name, arguments.toVariantMap());
+  });
 
   KConfigGroup server = config.group(QStringLiteral("Server"));
   const QString url = server.readEntry("Url", QString());

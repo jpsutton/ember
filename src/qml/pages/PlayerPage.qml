@@ -11,10 +11,14 @@ import Ember.Player
 // panel, Back or Stop ends playback.
 FocusScope {
     id: page
+    objectName: "player"
 
     property var app
     property string itemId
     property bool fromStart: false
+    // Set by a remote "Play On" request: where to start, and what follows.
+    property real startSeconds: -1
+    property var queue: []
     property bool osdVisible: true
     // The Up Next card was dismissed for this item.
     property bool nextDismissed: false
@@ -34,7 +38,9 @@ FocusScope {
         id: playback
         video: video
         onFinished: (completed) => {
-            if (completed && playback.nextItem.id !== undefined && EmberSettings.autoPlayNext && !page.nextDismissed) {
+            if (completed && page.queue.length > 0) {
+                page.playFromQueue()
+            } else if (completed && playback.nextItem.id !== undefined && EmberSettings.autoPlayNext && !page.nextDismissed) {
                 page.startNext()
             } else {
                 page.close()
@@ -55,6 +61,51 @@ FocusScope {
 
     function close() {
         if (page.app.stack.currentItem === page) page.app.stack.pop()
+    }
+
+    function playFromQueue() {
+        const next = queue[0]
+        queue = queue.slice(1)
+        playback.play(next, false)
+        showOsd()
+    }
+
+    // A "Play On" request while the player is already up.
+    function playQueue(ids, startIndex, startSeconds, command) {
+        if (command === "PlayNext") {
+            queue = ids.concat(queue)
+        } else if (command === "PlayLast") {
+            queue = queue.concat(ids)
+        } else {
+            queue = ids.slice(startIndex + 1)
+            if (startSeconds > 0) playback.playAt(ids[startIndex], startSeconds)
+            else playback.play(ids[startIndex], false)
+            showOsd()
+        }
+    }
+
+    // Playstate commands from another Jellyfin client.
+    function remoteControl(command, seekSeconds) {
+        switch (command) {
+        case "Stop": playback.stop(); break
+        case "Pause": playback.setPaused(true); break
+        case "Unpause": playback.setPaused(false); break
+        case "PlayPause": playback.togglePause(); break
+        case "Seek": playback.seekTo(seekSeconds); break
+        case "Rewind": playback.seekRelative(-EmberSettings.seekStepSeconds); break
+        case "FastForward": playback.seekRelative(EmberSettings.seekStepSeconds); break
+        case "PreviousTrack": playback.seekTo(0); break
+        case "NextTrack":
+            if (queue.length > 0) playFromQueue()
+            else if (playback.nextItem.id !== undefined) startNext()
+            break
+        }
+        showOsd()
+    }
+
+    function remoteTrack(name, index) {
+        if (name === "SetAudioStreamIndex") playback.selectAudio(index)
+        else if (name === "SetSubtitleStreamIndex") playback.selectSubtitle(index)
     }
 
     function showOsd() {
@@ -110,7 +161,10 @@ FocusScope {
         page.app.menu.open(qsTr("Playback"), options, (i) => actions[i]())
     }
 
-    Component.onCompleted: playback.play(itemId, fromStart)
+    Component.onCompleted: {
+        if (startSeconds >= 0) playback.playAt(itemId, startSeconds)
+        else playback.play(itemId, fromStart)
+    }
     Component.onDestruction: if (playback.state === Playback.Playing || playback.state === Playback.Loading) playback.stop()
 
     ScreenInhibitor {
@@ -482,7 +536,8 @@ FocusScope {
             page.seekBy(step)
             break
         case Qt.Key_MediaNext:
-            if (playback.nextItem.id !== undefined) page.startNext()
+            if (page.queue.length > 0) page.playFromQueue()
+            else if (playback.nextItem.id !== undefined) page.startNext()
             else page.jumpChapter(1)
             break
         case Qt.Key_Up:

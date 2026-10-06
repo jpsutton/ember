@@ -83,6 +83,19 @@ class ImageNetworkFactory : public QQmlNetworkAccessManagerFactory {
   QNetworkAccessManager* create(QObject* parent) override;
 };
 
+// Presses keys on behalf of a remote-control command from another Jellyfin
+// client, as if the remote had sent them.
+class KeyInjector : public QObject {
+  Q_OBJECT
+  QML_ELEMENT
+  QML_SINGLETON
+
+ public:
+  using QObject::QObject;
+
+  Q_INVOKABLE void press(int key) const;
+};
+
 // Formatting helpers for QML.
 class Format : public QObject {
   Q_OBJECT

@@ -28,11 +28,22 @@ class EventSocket : public QObject {
   void userDataChanged(const QString& item_id, const QJsonObject& user_data);
   // Items were added, removed or updated.
   void libraryChanged();
+  // Remote control from another Jellyfin client ("Play On").
+  // |command|: PlayNow, PlayNext, PlayLast.
+  void playRequested(const QStringList& item_ids, qint64 start_ticks, int start_index, const QString& command);
+  // |command|: Stop, Pause, Unpause, PlayPause, NextTrack, PreviousTrack,
+  // Seek, Rewind, FastForward.
+  void playstateRequested(const QString& command, qint64 seek_ticks);
+  // GeneralCommand: navigation (MoveUp, Select, Back, GoHome...),
+  // DisplayMessage, SetAudioStreamIndex, SetSubtitleStreamIndex...
+  void generalCommand(const QString& name, const QJsonObject& arguments);
 
  private:
   void connectSocket();
   void scheduleReconnect();
   void onMessage(const QString& text);
+  // Tells the server this device can be played to and remote-controlled.
+  void reportCapabilities();
 
   ApiClient* api_;
   QWebSocket socket_;

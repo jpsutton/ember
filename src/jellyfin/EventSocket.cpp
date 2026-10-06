@@ -31,6 +31,7 @@ EventSocket::EventSocket(ApiClient* api, QObject* parent) : QObject(parent), api
     qCInfo(lcEvents) << "connected";
     reconnect_delay_ms_ = 2000;
     keep_alive_.start();
+    reportCapabilities();
   });
   connect(&socket_, &QWebSocket::disconnected, this, [this]() {
     keep_alive_.stop();
@@ -87,7 +88,41 @@ void EventSocket::onMessage(const QString& text) {
     }
   } else if (type == QLatin1String("LibraryChanged")) {
     emit libraryChanged();
+  } else if (type == QLatin1String("Play")) {
+    const QJsonObject data = message.value(QStringLiteral("Data")).toObject();
+    QStringList ids;
+    for (const QJsonValue& id : data.value(QStringLiteral("ItemIds")).toArray()) ids.append(id.toString());
+    qCInfo(lcEvents).noquote() << "remote play" << data.value(QStringLiteral("PlayCommand")).toString() << ids;
+    emit playRequested(ids, data.value(QStringLiteral("StartPositionTicks")).toInteger(),
+                       data.value(QStringLiteral("StartIndex")).toInt(), data.value(QStringLiteral("PlayCommand")).toString());
+  } else if (type == QLatin1String("Playstate")) {
+    const QJsonObject data = message.value(QStringLiteral("Data")).toObject();
+    qCInfo(lcEvents).noquote() << "remote playstate" << data.value(QStringLiteral("Command")).toString();
+    emit playstateRequested(data.value(QStringLiteral("Command")).toString(),
+                            data.value(QStringLiteral("SeekPositionTicks")).toInteger());
+  } else if (type == QLatin1String("GeneralCommand")) {
+    const QJsonObject data = message.value(QStringLiteral("Data")).toObject();
+    qCInfo(lcEvents).noquote() << "remote command" << data.value(QStringLiteral("Name")).toString();
+    emit generalCommand(data.value(QStringLiteral("Name")).toString(), data.value(QStringLiteral("Arguments")).toObject());
   }
+}
+
+void EventSocket::reportCapabilities() {
+  // The commands Ember acts on; a phone's remote control only offers these.
+  static const QStringList commands = {
+      QStringLiteral("MoveUp"),         QStringLiteral("MoveDown"),    QStringLiteral("MoveLeft"),
+      QStringLiteral("MoveRight"),      QStringLiteral("PageUp"),      QStringLiteral("PageDown"),
+      QStringLiteral("Select"),         QStringLiteral("Back"),        QStringLiteral("GoHome"),
+      QStringLiteral("ToggleContextMenu"), QStringLiteral("ToggleOsd"), QStringLiteral("DisplayMessage"),
+      QStringLiteral("SetAudioStreamIndex"), QStringLiteral("SetSubtitleStreamIndex"), QStringLiteral("Play"),
+      QStringLiteral("PlayState"),      QStringLiteral("PlayNext")};
+  const QJsonObject body{{QStringLiteral("PlayableMediaTypes"), QJsonArray{QStringLiteral("Video")}},
+                         {QStringLiteral("SupportedCommands"), QJsonArray::fromStringList(commands)},
+                         {QStringLiteral("SupportsMediaControl"), true}};
+  [](ApiClient* api, QJsonObject body) -> QCoro::Task<> {
+    const Reply reply = co_await api->post(QStringLiteral("/Sessions/Capabilities/Full"), QJsonDocument(body));
+    if (!reply.ok()) qCInfo(lcEvents).noquote() << "capabilities not accepted:" << reply.error;
+  }(api_, body);
 }
 
 }  // namespace ember::jellyfin

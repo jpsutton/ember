@@ -88,6 +88,8 @@ class Playback : public QObject {
 
   // Starts |item_id|, resuming from the saved position unless |from_start|.
   Q_INVOKABLE void play(const QString& item_id, bool from_start = false);
+  // Starts |item_id| at |seconds| (a remote "Play On" request).
+  Q_INVOKABLE void playAt(const QString& item_id, double seconds);
   // Stops and reports the position; emits finished().
   Q_INVOKABLE void stop();
   Q_INVOKABLE void togglePause();
@@ -128,7 +130,8 @@ class Playback : public QObject {
     QJsonObject source;
   };
 
-  QCoro::Task<> playTask(QString item_id, bool from_start, quint64 generation);
+  // |start_seconds| < 0 resumes from the saved position (or 0 with |from_start|).
+  QCoro::Task<> playTask(QString item_id, bool from_start, double start_seconds, quint64 generation);
   QCoro::Task<bool> negotiate(double start_seconds, quint64 generation);
   QCoro::Task<> loadSegments(QString item_id, quint64 generation);
   QCoro::Task<> loadNextItem(QJsonObject item, quint64 generation);

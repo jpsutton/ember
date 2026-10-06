@@ -25,6 +25,7 @@ newer couchbox.
 | M4 playback | Done: direct play and HLS transcode, resume, progress reports, audio/subtitle menus, chapters, skip intro (chapter fallback), Up Next with auto-play, MPRIS, screen-saver inhibit. couchbox packaging prepared (couchbox branch `feat/ember`, not pushed). |
 | M5 Amber parity | Done: side blade (sort, order, hide watched), A–Z strip, Channel ± paging, info page with cast, context menu, genres, years, collections, search, and the server's event stream (rows update when watched state changes elsewhere; lists reload after library changes). |
 | M6 polish | Done: trickplay preview on the seek bar, on-screen keyboard and search, Amber's Low, Tall, Big and Simple list styles besides List (remembered per library), home menu order and visibility, threaded render loop tried (no gain; basic kept). The GLib-free plane item is moot: the Qt port never used GLib. |
+| After first use | Amber's fonts (Ubuntu Condensed in capitals, Bebas Neue home menu), bundled. The side blade of a whole library offers Recently added and Recently aired (the library's playable items: films, episodes); Recently aired places an episode a streaming service released before its air date at the date it was added. Phone typing through KDE Connect submits with Enter (KDE Connect itself drops Shift; couchbox `UPSTREAM-BUGS.md` #25). |
 | Later | Cast target done: other Jellyfin clients can play to Ember ("Play On", with a queue), control playback, navigate (arrows, OK, Back, Home, menu) and send messages. Shelves, music and refresh-rate switching not started. |
 
 ## Goal
@@ -133,7 +134,10 @@ see "Scaling" below. Particulars get tuned after implementation.
   beginning (when in progress), Information, Mark watched/unwatched, Go to
   show, Go to season.
 - **Left** from a list opens the side blade (510 px): view type, sort by,
-  order, hide watched, filter (genre, year), search in this library.
+  order, hide watched, filter (genre, year), search in this library. On a
+  whole library it also lists Recently added and Recently aired, each a list
+  of the library's playable items (episodes for shows). An item's aired date
+  is its premiere date, or the date it was added when that is earlier.
 - **Right** from a list (when sorted by name) opens an A-Z strip on the right
   edge; Up/Down jumps letters.
 - **Channel Up/Down** page the list.

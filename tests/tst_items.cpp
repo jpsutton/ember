@@ -100,6 +100,30 @@ class TestItems : public QObject {
     QCOMPARE(ember::jellyfin::FormatRuntime(ticks), text);
   }
 
+  void airedDate_data() {
+    QTest::addColumn<QString>("premiere");
+    QTest::addColumn<QString>("created");
+    QTest::addColumn<QString>("aired");
+    const QString may = QStringLiteral("2026-05-01T00:00:00.0000000Z");
+    const QString june = QStringLiteral("2026-06-01T00:00:00.0000000Z");
+    QTest::newRow("added after airing") << may << june << may;
+    // Released early on streaming: the episode was there before its air date.
+    QTest::newRow("added before airing") << june << may << may;
+    QTest::newRow("no premiere date") << QString() << june << june;
+    QTest::newRow("no added date") << may << QString() << may;
+    QTest::newRow("neither") << QString() << QString() << QString();
+  }
+
+  void airedDate() {
+    QFETCH(QString, premiere);
+    QFETCH(QString, created);
+    QFETCH(QString, aired);
+    QJsonObject item;
+    if (!premiere.isEmpty()) item.insert(QStringLiteral("PremiereDate"), premiere);
+    if (!created.isEmpty()) item.insert(QStringLiteral("DateCreated"), created);
+    QCOMPARE(ember::jellyfin::AiredDate(item), QDateTime::fromString(aired, Qt::ISODate));
+  }
+
   void authorization() {
     const QString header = QString::fromUtf8(api_.authorization());
     QVERIFY(header.startsWith(QStringLiteral("MediaBrowser Client=\"Ember\"")));

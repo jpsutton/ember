@@ -28,7 +28,7 @@ FocusScope {
             entries.push({ title: title, query: query, context: Object.assign({}, context, extra || {}) })
         }
         if (library.collectionType === "movies") {
-            add(qsTr("All movies"), all)
+            add(qsTr("All movies"), all, { libraryRoot: true })
             add(qsTr("Recently added"), Object.assign({}, all, { sortBy: "DateCreated", descending: true }), { viewKey: library.id + "-recent", fixedSort: true })
             add(qsTr("In progress"), { mode: "resume", parentId: library.id, includeTypes: "Movie" }, { viewKey: "", fixedSort: true })
             add(qsTr("Unwatched"), Object.assign({}, all, { hideWatched: true }), { viewKey: library.id + "-unwatched" })
@@ -36,7 +36,7 @@ FocusScope {
             add(qsTr("Years"), { mode: "years", parentId: library.id, includeTypes: "Movie" }, { viewKey: "", fixedSort: true })
             add(qsTr("Collections"), { mode: "items", includeTypes: "BoxSet", recursive: true }, { viewKey: "collections" })
         } else if (library.collectionType === "tvshows") {
-            add(qsTr("All shows"), all)
+            add(qsTr("All shows"), all, { libraryRoot: true })
             add(qsTr("Next up"), { mode: "nextup", parentId: library.id }, { viewKey: "", fixedSort: true })
             add(qsTr("Recently added episodes"), { mode: "items", parentId: library.id, includeTypes: "Episode", recursive: true,
                                                    sortBy: "DateCreated", descending: true }, { viewKey: "", fixedSort: true })
@@ -45,7 +45,7 @@ FocusScope {
             add(qsTr("Genres"), { mode: "genres", parentId: library.id, includeTypes: "Series" }, { viewKey: "", fixedSort: true })
             add(qsTr("Years"), { mode: "years", parentId: library.id, includeTypes: "Series" }, { viewKey: "", fixedSort: true })
         } else {
-            add(qsTr("Browse"), all)
+            add(qsTr("Browse"), all, { libraryRoot: true })
             add(qsTr("Recently added"), { mode: "items", parentId: library.id, recursive: true, includeTypes: "Movie,Episode,Video",
                                           sortBy: "DateCreated", descending: true }, { viewKey: "", fixedSort: true })
             add(qsTr("In progress"), { mode: "resume", parentId: library.id }, { viewKey: "", fixedSort: true })

@@ -119,6 +119,7 @@ FocusScope {
     }
 
     function label2(item) {
+        if (items.mode === "aired") return item.airedDate || ""
         switch (items.sortBy) {
         case "DateCreated": return item.dateCreated || ""
         case "PremiereDate": return item.premiereDate || (item.year ? String(item.year) : "")
@@ -156,6 +157,11 @@ FocusScope {
         ]
         const views = [["list", qsTr("List")], ["low", qsTr("Low list")], ["tall", qsTr("Tall list")],
                        ["big", qsTr("Big list")], ["simple", qsTr("Simple list")]]
+        // A whole library also offers its newest items, as lists of their own.
+        if (context.libraryRoot && context.collectionType !== "boxsets") {
+            add(qsTr("Recently added"), "", () => page.app.openRecent(page.title + " · " + qsTr("Recently added"), page.context, false))
+            add(qsTr("Recently aired"), "", () => page.app.openRecent(page.title + " · " + qsTr("Recently aired"), page.context, true))
+        }
         add(qsTr("View"), (views.find(v => v[0] === page.viewType) || views[0])[1], () => {
             page.app.menu.open(qsTr("View"), views.map(v => ({ title: v[1], checked: v[0] === page.viewType })),
                                (i) => page.setViewType(views[i][0]), "left")

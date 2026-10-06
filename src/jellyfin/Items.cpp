@@ -100,6 +100,13 @@ bool IsPlayable(const QJsonObject& item) {
          item.value(QStringLiteral("MediaType")).toString() == QLatin1String("Video");
 }
 
+QDateTime AiredDate(const QJsonObject& item) {
+  const QDateTime premiere = QDateTime::fromString(item.value(QStringLiteral("PremiereDate")).toString(), Qt::ISODate);
+  const QDateTime created = QDateTime::fromString(item.value(QStringLiteral("DateCreated")).toString(), Qt::ISODate);
+  if (!premiere.isValid()) return created;
+  return created.isValid() && created < premiere ? created : premiere;
+}
+
 QVariantMap ItemToVariant(const QJsonObject& item, const ApiClient* api) {
   QVariantMap m;
   const QString id = item.value(QStringLiteral("Id")).toString();
@@ -121,6 +128,8 @@ QVariantMap ItemToVariant(const QJsonObject& item, const ApiClient* api) {
   m[QStringLiteral("premiereDate")] = premiere.isValid() ? QLocale().toString(premiere.date(), QLocale::ShortFormat) : QString();
   const QDateTime created = QDateTime::fromString(item.value(QStringLiteral("DateCreated")).toString(), Qt::ISODate);
   m[QStringLiteral("dateCreated")] = created.isValid() ? QLocale().toString(created.date(), QLocale::ShortFormat) : QString();
+  const QDateTime aired = AiredDate(item);
+  m[QStringLiteral("airedDate")] = aired.isValid() ? QLocale().toString(aired.date(), QLocale::ShortFormat) : QString();
   m[QStringLiteral("officialRating")] = item.value(QStringLiteral("OfficialRating")).toString();
   const double community = item.value(QStringLiteral("CommunityRating")).toDouble();
   m[QStringLiteral("communityRating")] = community > 0 ? QString::number(community, 'f', 1) : QString();

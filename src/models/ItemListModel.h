@@ -3,6 +3,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QDateTime>
 #include <QJsonObject>
 #include <QTimer>
 #include <QtQml/qqmlregistration.h>
@@ -24,6 +25,9 @@ namespace ember {
 //   "genres"    /Genres under parentId
 //   "years"     the production years present under parentId
 //   "search"    /Items matching searchTerm across the shown libraries
+//   "aired"     /Items under parentId, newest first by jellyfin::AiredDate
+//               (episodes a streaming service released early sort by the
+//               date they were added, not their future air date)
 class ItemListModel : public QAbstractListModel {
   Q_OBJECT
   QML_ELEMENT
@@ -134,6 +138,10 @@ class ItemListModel : public QAbstractListModel {
   void setLoading(bool loading);
   void setError(const QString& error);
   void appendRows(const QJsonArray& items);
+  // "aired": the server sorts by premiere date (then date added), and an
+  // item's aired date is never later than either, so a held item is placed
+  // once the pages have passed its date. Returns how many rows were added.
+  int releaseAired(const QDateTime& cutoff);
 
   QString mode_ = QStringLiteral("items");
   QString parent_id_;
@@ -149,6 +157,9 @@ class ItemListModel : public QAbstractListModel {
   QString search_term_;
 
   QList<QVariantMap> rows_;
+  // "aired": items fetched but not yet placed, and how many the server sent.
+  QList<QJsonObject> aired_pending_;
+  int aired_fetched_ = 0;
   int total_ = 0;
   bool loading_ = false;
   bool exhausted_ = false;

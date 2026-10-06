@@ -29,7 +29,7 @@ const QList<QByteArray>& FieldNames() {
   static const QList<QByteArray> names = {
       "id",          "name",          "type",          "isFolder",       "playable",       "collectionType",
       "sortName",    "originalTitle", "overview",      "tagline",        "year",           "premiereDate",
-      "dateCreated", "officialRating", "communityRating", "criticRating", "runtimeTicks",   "runtimeText",
+      "dateCreated", "airedDate",     "officialRating", "communityRating", "criticRating", "runtimeTicks",   "runtimeText",
       "genres",      "studios",       "seriesId",      "seriesName",     "seasonId",       "seasonName",
       "indexNumber", "parentIndexNumber", "episodeLabel", "childCount",  "recursiveCount", "played",
       "playedPercentage", "playbackPositionTicks", "resumeText", "unplayedCount", "isFavorite", "status",
@@ -101,7 +101,7 @@ QHash<int, QByteArray> ItemListModel::roleNames() const {
 
 bool ItemListModel::pagedMode() const {
   return mode_ == QLatin1String("items") || mode_ == QLatin1String("resume") || mode_ == QLatin1String("nextup") ||
-         mode_ == QLatin1String("search");
+         mode_ == QLatin1String("search") || mode_ == QLatin1String("aired");
 }
 
 bool ItemListModel::canFetchMore(const QModelIndex& parent) const {
@@ -110,7 +110,7 @@ bool ItemListModel::canFetchMore(const QModelIndex& parent) const {
 
 void ItemListModel::fetchMore(const QModelIndex& parent) {
   if (!canFetchMore(parent)) return;
-  fetchPage(generation_, int(rows_.size()));
+  fetchPage(generation_, mode_ == QLatin1String("aired") ? aired_fetched_ : int(rows_.size()));
 }
 
 void ItemListModel::scheduleReload() { reload_timer_.start(); }
@@ -120,6 +120,8 @@ void ItemListModel::reload() {
   ++generation_;
   beginResetModel();
   rows_.clear();
+  aired_pending_.clear();
+  aired_fetched_ = 0;
   total_ = 0;
   exhausted_ = false;
   endResetModel();
@@ -194,6 +196,15 @@ QCoro::Task<> ItemListModel::fetchPage(quint64 generation, int start) {
     if (hide_watched_) query.addQueryItem(QStringLiteral("Filters"), QStringLiteral("IsUnplayed"));
     if (mode_ == QLatin1String("search")) query.addQueryItem(QStringLiteral("SearchTerm"), search_term_);
     if (mode_ != QLatin1String("search")) add_sort();
+  } else if (mode_ == QLatin1String("aired")) {
+    path = QStringLiteral("/Items");
+    if (!parent_id_.isEmpty()) query.addQueryItem(QStringLiteral("ParentId"), parent_id_);
+    if (!include_types_.isEmpty()) query.addQueryItem(QStringLiteral("IncludeItemTypes"), include_types_);
+    query.addQueryItem(QStringLiteral("Recursive"), QStringLiteral("true"));
+    query.addQueryItem(QStringLiteral("IsMissing"), QStringLiteral("false"));
+    if (hide_watched_) query.addQueryItem(QStringLiteral("Filters"), QStringLiteral("IsUnplayed"));
+    query.addQueryItem(QStringLiteral("SortBy"), QStringLiteral("PremiereDate,DateCreated,SortName"));
+    query.addQueryItem(QStringLiteral("SortOrder"), QStringLiteral("Descending"));
   } else if (mode_ == QLatin1String("seasons")) {
     path = QStringLiteral("/Shows/%1/Seasons").arg(series_id_);
   } else if (mode_ == QLatin1String("episodes")) {
@@ -250,6 +261,22 @@ QCoro::Task<> ItemListModel::fetchPage(quint64 generation, int start) {
     total_ = int(items.size());
     exhausted_ = true;
     appendRows(items);
+  } else if (mode_ == QLatin1String("aired")) {
+    const QJsonArray items = reply.object().value(QStringLiteral("Items")).toArray();
+    total_ = reply.object().value(QStringLiteral("TotalRecordCount")).toInt();
+    aired_fetched_ += int(items.size());
+    if (items.isEmpty() || aired_fetched_ >= total_) exhausted_ = true;
+    for (const QJsonValue& value : items) aired_pending_.append(value.toObject());
+    // No later item aired after this page's last one: the server sorts by
+    // premiere date, and items without one come last, by date added.
+    QDateTime cutoff;
+    if (!items.isEmpty()) {
+      const QJsonObject last = items.last().toObject();
+      cutoff = QDateTime::fromString(last.value(QStringLiteral("PremiereDate")).toString(), Qt::ISODate);
+      if (!cutoff.isValid()) cutoff = QDateTime::fromString(last.value(QStringLiteral("DateCreated")).toString(), Qt::ISODate);
+    }
+    // Nothing could be placed yet: read on rather than wait for the view.
+    if (releaseAired(cutoff) == 0 && !exhausted_) fetchPage(generation, aired_fetched_);
   } else {
     const QJsonArray items = reply.json.isArray() ? reply.array() : reply.object().value(QStringLiteral("Items")).toArray();
     total_ = paged ? reply.object().value(QStringLiteral("TotalRecordCount")).toInt(int(rows_.size() + items.size()))
@@ -259,6 +286,24 @@ QCoro::Task<> ItemListModel::fetchPage(quint64 generation, int start) {
   }
   emit countChanged();
   if (start == 0) emit loaded();
+}
+
+int ItemListModel::releaseAired(const QDateTime& cutoff) {
+  std::stable_sort(aired_pending_.begin(), aired_pending_.end(), [](const QJsonObject& a, const QJsonObject& b) {
+    const QDateTime da = jellyfin::AiredDate(a);
+    const QDateTime db = jellyfin::AiredDate(b);
+    if (da.isValid() != db.isValid()) return da.isValid();
+    return da > db;
+  });
+  QJsonArray ready;
+  while (!aired_pending_.isEmpty()) {
+    const QDateTime aired = jellyfin::AiredDate(aired_pending_.first());
+    // Items with no dates at all can go anywhere until the list is complete.
+    if (!exhausted_ && (!cutoff.isValid() || !aired.isValid() || aired < cutoff)) break;
+    ready.append(aired_pending_.takeFirst());
+  }
+  appendRows(ready);
+  return int(ready.size());
 }
 
 QVariantMap ItemListModel::get(int index) const {

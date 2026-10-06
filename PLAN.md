@@ -28,6 +28,7 @@ newer couchbox.
 | After first use | Amber's fonts (Ubuntu Condensed in capitals, Bebas Neue home menu), bundled. A library's home submenu offers Recently added and Recently aired (the library's playable items across all its shows: films, episodes); Recently aired places an episode a streaming service released before its air date at the date it was added. Phone typing through KDE Connect submits with Enter (KDE Connect itself drops Shift; couchbox `UPSTREAM-BUGS.md` #25). |
 | Multiple servers | Every server signed in to is kept, with its token and library choices; Left on Settings in the home menu offers Switch server (saved servers, Add a server, Remove a server). Libraries from several servers on one home menu at once: not yet. Shuffle for a show or season (view options), reshuffling through Up Next. |
 | Typing | Text fields expect a keyboard (a real one, or a phone's through KDE Connect); the on-screen keyboard opens from a button inside the field, beside Paste. A password field empties the clipboard after pasting from it. Left/Right skip at once with a running total at the side (Plezy's behaviour). |
+| Live TV | The server's Live TV view is a home entry (and the Guide key opens it): a channel guide laid out and driven like couchbox-iptv's (details, preview, All/Favourites, three hours in half-hour columns, focus by time, digits, favourites), in Ember's colours. One player serves the preview and full screen; full screen has a banner (programme, progress, next, live or behind), browsing in the banner, and timeshift in mpv's cache. Playback's live mode passes the tuner's LiveStreamId, closes unstarted tuner streams, retunes once on a dropped stream. Tested against the user's ATSC tuner (94 channels): scrolling with the preview playing is about 20 % of one Bay Trail core. Recordings (DVR) are a later step. |
 | Later | Cast target done: other Jellyfin clients can play to Ember ("Play On", with a queue), control playback, navigate (arrows, OK, Back, Home, menu) and send messages. Shelves, music and refresh-rate switching not started. |
 
 ## Goal
@@ -53,7 +54,6 @@ for day-to-day watching.
   room for them.
 - Plex and Emby.
 - Music libraries.
-- Live TV (couchbox-iptv covers it).
 - Downloads, SyncPlay, multiple servers at once.
 - Being remote-controlled by other Jellyfin clients ("Play On"). (Done after
   all; see Status.)

@@ -124,12 +124,14 @@ FocusScope {
     }
 
     function skip(seconds) {
-        if (playback.state !== Playback.Playing || playback.duration <= 0) return
+        if (playback.state !== Playback.Playing || (playback.duration <= 0 && !playback.live)) return
         const forward = seconds > 0
         // A press the other way, or after the readout went, starts a new run.
         const continuing = skipBadgeTimer.running && skipForward === forward
         const base = continuing && skipTarget >= 0 ? skipTarget : playback.position
-        const target = Math.max(0, Math.min(playback.duration - 1, base + seconds))
+        // A channel skips within its cache, short of the live edge.
+        const target = playback.live ? Math.max(playback.seekableStart, Math.min(playback.liveEdge - 3, base + seconds))
+                                     : Math.max(0, Math.min(playback.duration - 1, base + seconds))
         // At either end, a fresh run has nothing to announce; a run already
         // showing stays up at its total.
         if (!continuing && Math.round(Math.abs(target - base)) === 0) return
@@ -418,8 +420,10 @@ FocusScope {
             anchors.rightMargin: Theme.px(80)
             anchors.bottom: osdTitle.bottom
             horizontalAlignment: Text.AlignRight
+            // A channel (sent with Play On) has no end: say how live it is.
             text: (playback.paused ? "❚❚  " : "")
-                  + qsTr("Ends at %1").arg(Format.timeOfDay(playback.duration - playback.position))
+                  + (playback.live ? (playback.behindLive > 1 ? qsTr("%1 behind live").arg(Format.clock(playback.behindLive)) : qsTr("Live"))
+                                   : qsTr("Ends at %1").arg(Format.timeOfDay(playback.duration - playback.position)))
             font.family: Theme.fontFamily
             font.pixelSize: Theme.bodyFont
             color: Theme.text
@@ -428,6 +432,7 @@ FocusScope {
         // Seek bar.
         Item {
             id: bar
+            visible: !playback.live
             x: Theme.px(80)
             y: Theme.px(190)
             width: parent.width - Theme.px(160)
@@ -456,6 +461,7 @@ FocusScope {
             anchors.left: bar.left
             anchors.top: bar.bottom
             anchors.topMargin: Theme.px(16)
+            visible: !playback.live
             text: Format.clock(playback.position)
             font.family: Theme.fontFamily
             font.pixelSize: Theme.bodyFont
@@ -465,6 +471,7 @@ FocusScope {
             anchors.right: bar.right
             anchors.top: bar.bottom
             anchors.topMargin: Theme.px(16)
+            visible: !playback.live
             text: "-" + Format.clock(Math.max(0, playback.duration - playback.position)) + "  /  " + Format.clock(playback.duration)
             font.family: Theme.fontFamily
             font.pixelSize: Theme.bodyFont

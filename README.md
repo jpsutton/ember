@@ -14,6 +14,9 @@ details, and everything done with a TV remote.
 - Puts the libraries you choose on the home menu.
 - Remembers every server you sign in to. Switch between them from Settings
   on the home menu.
+- Live TV from a Jellyfin tuner, with a channel guide: what's on now and
+  over the next hours, a preview of the channel you last watched, and
+  pausing and skipping back in what you're watching.
 - Shows what's new in each library: recently added, and recently aired. An
   episode that a streaming service releases early shows up when it arrives,
   not weeks later when it officially airs.
@@ -76,6 +79,15 @@ Left on Settings offers Switch server.
 - Back stops.
 
 When an episode ends, the next one starts after a short countdown.
+
+**Live TV.** The guide's highlight moves across time with Left and Right
+and between channels with Up and Down; digits jump to a channel number.
+OK watches the channel full screen, and Back returns to the guide with it
+still playing in the corner. While watching, Up and Down (or Channel up and
+down) show other channels' programmes, and OK switches to the one shown.
+Left and Right skip within the last few minutes, pause works too, and Menu
+offers favourites and "Back to live". The Guide button on the remote opens
+Live TV from anywhere.
 
 **Typing.** Text fields take typing from a keyboard, or from your phone
 through KDE Connect. With the remote, press Right in a field to reach

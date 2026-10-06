@@ -86,6 +86,12 @@ void Playback::setVideo(MpvVideo* video) {
     // default. With VA-API this is the GPU's vavpp; progressive video is
     // left alone.
     video_->setOption(QStringLiteral("deinterlace"), QStringLiteral("auto"));
+    // Time frames to the display's refresh, resampling the audio a little,
+    // so 29.97 fps on 60 Hz shows every frame for exactly two refreshes. Timed
+    // to audio instead, the drift between the two clocks walks frames across
+    // the compositor's deadline every ~17 s, a few seconds of stutter each.
+    // Without a known refresh rate mpv falls back to audio timing.
+    video_->setOption(QStringLiteral("video-sync"), QStringLiteral("display-resample"));
     if (CouchboxConfig().fastScaling()) {
       // couchbox's profile for weak GPUs: cheap scalers, no dithering.
       for (const auto& [name, value] :

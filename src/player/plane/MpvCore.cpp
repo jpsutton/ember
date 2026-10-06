@@ -245,6 +245,15 @@ bool MpvCore::Initialize() {
   // Info level keeps mpv's hwdec probe and "Using software decoding" lines,
   // the only evidence a silent software fallback leaves.
   mpv_request_log_messages(mpv_, "info");
+  // For experiments: extra mpv options as "name=value,name=value".
+  for (const QByteArray& option : qgetenv("EMBER_MPV_OPTIONS").split(',')) {
+    const qsizetype equals = option.indexOf('=');
+    if (equals <= 0) continue;
+    const QByteArray name = option.left(equals).trimmed();
+    const QByteArray value = option.mid(equals + 1).trimmed();
+    const int set = mpv_set_option_string(mpv_, name.constData(), value.constData());
+    qCInfo(lcMpv, "EMBER_MPV_OPTIONS: %s=%s: %s", name.constData(), value.constData(), mpv_error_string(set));
+  }
 
   const int error = mpv_initialize(mpv_);
   if (error < 0) {
@@ -392,6 +401,16 @@ bool MpvCore::RenderToSurface(EGLSurface surface, int width, int height) {
   };
   mpv_render_context_render(render, params);
   return true;
+}
+
+void MpvCore::ReportSwap() {
+  mpv_render_context* render = nullptr;
+  {
+    std::lock_guard<std::mutex> lock(native_mutex_);
+    if (disposed_ || mpv_gl_ == nullptr) return;
+    render = mpv_gl_;
+  }
+  mpv_render_context_report_swap(render);
 }
 
 void MpvCore::Dispose() {

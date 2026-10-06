@@ -65,6 +65,9 @@ class MpvCore {
   // Renders one frame into |surface|'s default framebuffer. Runs on the plane
   // render worker. The caller presents it with eglSwapBuffers.
   bool RenderToSurface(EGLSurface surface, int width, int height);
+  // After the swap of a frame RenderToSurface drew: tells mpv when it went
+  // out, which display-sync times frames by. Render worker only.
+  void ReportSwap();
 
   // Stops mpv and hands the core, render context and EGL context to the
   // teardown thread. The caller must have drained the render worker first.

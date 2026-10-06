@@ -3,6 +3,7 @@
 #pragma once
 
 #include <QPointer>
+#include <QTimer>
 #include <QQuickItem>
 #include <QRect>
 #include <QVariant>
@@ -68,6 +69,7 @@ class MpvVideo : public QQuickItem {
   void applyRect();
   void render(bool force);
   void scheduleRenderRetry();
+  void startStats();
   void applyDisplayFps(QScreen* screen);
   void setError(const QString& error);
   void whenReady(std::function<void()> call);
@@ -78,6 +80,7 @@ class MpvVideo : public QQuickItem {
   std::unique_ptr<ember::plane::MpvCore> core_;
   std::unique_ptr<ember::plane::WaylandVideoPlane> plane_;
   std::unique_ptr<ember::plane::PlaneRenderExecutor> executor_;
+  std::unique_ptr<QTimer> stats_timer_;
   std::vector<std::function<void()>> pending_calls_;
 
   bool ready_ = false;

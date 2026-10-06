@@ -24,6 +24,12 @@ Environment variables:
 
 - `EMBER_WINDOWED=1` opens a window instead of going full screen.
 - `EMBER_KEYS=1` logs every key event.
+- `EMBER_MPV_OPTIONS=name=value,name=value` sets extra mpv options, for
+  experiments.
+- `QT_LOGGING_RULES="ember.video.stats=true"` logs frame timing every 5
+  seconds while video plays: pictures handed to the compositor per second,
+  how long drawing and swapping took, and mpv's dropped, late and mistimed
+  frames with the refresh rate it measures.
 
 ## Files Ember keeps
 

@@ -5,17 +5,24 @@
 #include "MpvVideo.h"
 
 #include <EGL/egl.h>
+#include <mpv/client.h>
 
 #include <QLoggingCategory>
 #include <QQuickWindow>
 #include <QScreen>
 #include <QTimer>
 
+#include <atomic>
+#include <chrono>
+
 #include "plane/MpvCore.h"
 #include "plane/PlaneRenderExecutor.h"
 #include "plane/WaylandVideoPlane.h"
 
 Q_LOGGING_CATEGORY(lcVideo, "ember.video")
+// Frame timing every 5 s while video plays; off unless enabled
+// (QT_LOGGING_RULES="ember.video.stats=true").
+Q_LOGGING_CATEGORY(lcStats, "ember.video.stats", QtWarningMsg)
 
 using ember::plane::MpvCore;
 using ember::plane::PlaneRenderExecutor;
@@ -26,6 +33,28 @@ namespace {
 // Delay before retrying a render whose job failed, so a persistent failure
 // doesn't spin the render worker.
 constexpr int kRenderRetryDelayMs = 100;
+
+// Present timing for ember.video.stats, in microseconds since the last report.
+struct PresentStats {
+  std::atomic<int> presents{0};
+  std::atomic<qint64> wait_sum{0}, wait_max{0};      // post to job start
+  std::atomic<qint64> render_sum{0}, render_max{0};  // mpv render
+  std::atomic<qint64> swap_sum{0}, swap_max{0};      // eglSwapBuffers
+  std::atomic<int> qt_frames{0};                     // the UI's own frames
+};
+PresentStats g_stats;
+
+qint64 NowUs() {
+  return std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch())
+      .count();
+}
+
+void Track(std::atomic<qint64>& sum, std::atomic<qint64>& max, qint64 value) {
+  sum += value;
+  qint64 seen = max.load();
+  while (value > seen && !max.compare_exchange_weak(seen, value)) {
+  }
+}
 
 std::vector<std::string> ToStdStrings(const QStringList& list) {
   std::vector<std::string> result;
@@ -133,6 +162,7 @@ void MpvVideo::start() {
   plane_->SetFrameCallback([this]() { render(false); });
   plane_->SetScreenEnteredCallback([this](QScreen* screen) { applyDisplayFps(screen); });
   core_->SetRedrawCallback([this]() { render(false); });
+  if (lcStats().isInfoEnabled()) startStats();
   core_->SetEventCallback([this](const QString& name, const QVariantMap& data) {
     if (name == QLatin1String("log-message")) {
       const QString level = data.value(QStringLiteral("level")).toString();
@@ -258,15 +288,24 @@ void MpvVideo::render(bool force) {
   const int height = plane_->buffer_height();
   const quint64 generation = generation_;
   render_in_flight_ = true;
+  const qint64 posted_at = NowUs();
   const bool posted = executor_->Post(
-      [core, display, surface, width, height]() {
+      [core, display, surface, width, height, posted_at]() {
+        const qint64 start = NowUs();
         if (!core->RenderToSurface(surface, width, height)) return false;
+        const qint64 rendered = NowUs();
         // The swap is the plane's commit. Swap interval 0, so it never blocks
         // on the compositor.
         if (eglSwapBuffers(display, surface) != EGL_TRUE) {
           qCWarning(lcVideo, "eglSwapBuffers failed: 0x%x", eglGetError());
           return false;
         }
+        core->ReportSwap();
+        const qint64 swapped = NowUs();
+        ++g_stats.presents;
+        Track(g_stats.wait_sum, g_stats.wait_max, start - posted_at);
+        Track(g_stats.render_sum, g_stats.render_max, rendered - start);
+        Track(g_stats.swap_sum, g_stats.swap_max, swapped - rendered);
         return true;
       },
       [this, generation](bool swapped) {
@@ -288,6 +327,35 @@ void MpvVideo::render(bool force) {
     render_in_flight_ = false;
     plane_->CompletePresent(false);
   }
+}
+
+void MpvVideo::startStats() {
+  stats_timer_ = std::make_unique<QTimer>();
+  stats_timer_->setInterval(5000);
+  if (window_) connect(window_, &QQuickWindow::frameSwapped, this, []() { ++g_stats.qt_frames; });
+  connect(stats_timer_.get(), &QTimer::timeout, this, [this]() {
+    if (!core_) return;
+    const int n = g_stats.presents.exchange(0);
+    if (n > 0) {
+      qCInfo(lcStats, "presents %.1f/s, ui frames %.1f/s, ms avg/max: wait %.1f/%.1f render %.1f/%.1f swap %.1f/%.1f",
+             n / 5.0, g_stats.qt_frames.exchange(0) / 5.0, g_stats.wait_sum.exchange(0) / 1000.0 / n,
+             g_stats.wait_max.exchange(0) / 1000.0, g_stats.render_sum.exchange(0) / 1000.0 / n,
+             g_stats.render_max.exchange(0) / 1000.0, g_stats.swap_sum.exchange(0) / 1000.0 / n,
+             g_stats.swap_max.exchange(0) / 1000.0);
+    }
+    core_->CommandAsync(
+        {"expand-text",
+         "${?vo-configured==yes:drops ${frame-drop-count} decoder-drops ${decoder-frame-drop-count} "
+         "delayed ${vo-delayed-frame-count} mistimed ${mistimed-frame-count} "
+         "sync ${video-sync} vsync-ratio ${vsync-ratio} vsync-jitter ${vsync-jitter} "
+         "vf-fps ${estimated-vf-fps} display-fps ${display-fps} measured-display-fps ${estimated-display-fps} "
+         "speed ${speed} avsync ${avsync} cache ${demuxer-cache-duration}}"},
+        [](int error, const mpv_node* result) {
+          if (error < 0 || result == nullptr || result->format != MPV_FORMAT_STRING) return;
+          if (result->u.string[0] != '\0') qCInfo(lcStats, "%s", result->u.string);
+        });
+  });
+  stats_timer_->start();
 }
 
 void MpvVideo::scheduleRenderRetry() {

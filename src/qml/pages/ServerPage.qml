@@ -103,7 +103,11 @@ FocusScope {
         }
     }
 
+    // Back returns to the server in use when this was opened to add another.
     Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Back) event.accepted = true  // nowhere to go back to
+        if (event.key === Qt.Key_Back) {
+            if (Session.canCancelAddServer) Session.cancelAddServer()
+            event.accepted = true
+        }
     }
 }

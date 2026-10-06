@@ -69,9 +69,18 @@ FocusScope {
         else if (entry.kind === "settings") page.app.stack.push(page.app.settingsPageComponent)
     }
 
+    // Settings' submenu: the settings page, and switching servers.
+    function settingsSubmenu() {
+        return [
+            { title: qsTr("Settings"), action: () => page.app.stack.push(page.app.settingsPageComponent) },
+            { title: qsTr("Switch server"), action: () => page.app.switchServer() },
+        ]
+    }
+
     function openSubmenu() {
-        if (page.focused.kind !== "library") return
-        submenu.model = submenuFor(page.focused.library)
+        if (page.focused.kind === "library") submenu.model = submenuFor(page.focused.library)
+        else if (page.focused.kind === "settings") submenu.model = settingsSubmenu()
+        else return
         submenu.currentIndex = 0
         submenuOpen = true
         submenu.forceActiveFocus()
@@ -220,7 +229,8 @@ FocusScope {
             onActivated: (index) => {
                 const entry = submenu.model[index]
                 page.closeSubmenu()
-                page.app.openList(entry.context.listTitle || entry.title, entry.query, entry.context)
+                if (entry.action) entry.action()
+                else page.app.openList(entry.context.listTitle || entry.title, entry.query, entry.context)
             }
             Keys.onPressed: (event) => {
                 if (event.key === Qt.Key_Right || event.key === Qt.Key_Back || event.key === Qt.Key_Left) {

@@ -102,33 +102,46 @@ void Session::load() {
     emit remoteCommand(name, arguments.toVariantMap());
   });
 
-  KConfigGroup server = config.group(QStringLiteral("Server"));
-  const QString url = server.readEntry("Url", QString());
-  if (!url.isEmpty()) {
-    api_->setBaseUrl(QUrl(url));
-    server_id_ = server.readEntry("Id", QString());
-    server_name_ = server.readEntry("Name", QString());
-    server_version_ = server.readEntry("Version", QString());
-    state_ = State::SignedOut;
+  KConfigGroup accounts = config.group(QStringLiteral("Accounts"));
+  for (const QString& id : accounts.readEntry("Order", QStringList())) {
+    const KConfigGroup group = config.group(QStringLiteral("Account ") + id);
+    Account account;
+    account.server_id = id;
+    account.url = group.readEntry("Url", QString());
+    account.name = group.readEntry("Name", QString());
+    account.version = group.readEntry("Version", QString());
+    account.token = group.readEntry("Token", QString());
+    account.user_id = group.readEntry("UserId", QString());
+    account.user_name = group.readEntry("UserName", QString());
+    account.libraries_chosen = group.readEntry("LibrariesChosen", false);
+    account.hidden_libraries = group.readEntry("HiddenLibraries", QStringList());
+    account.library_cache = group.readEntry("LibraryCache", QStringList());
+    if (!account.url.isEmpty()) accounts_.append(account);
   }
-  KConfigGroup user = config.group(QStringLiteral("User"));
-  const QString token = user.readEntry("Token", QString());
-  if (state_ == State::SignedOut && !token.isEmpty()) {
-    api_->setToken(token);
-    user_id_ = user.readEntry("Id", QString());
-    user_name_ = user.readEntry("Name", QString());
-    state_ = State::SignedIn;
+  QString active = accounts.readEntry("Active", QString());
+  // Before several servers: one [Server], [User] and [Libraries].
+  const KConfigGroup old_server = config.group(QStringLiteral("Server"));
+  if (accounts_.isEmpty() && !old_server.readEntry("Url", QString()).isEmpty()) {
+    const KConfigGroup old_user = config.group(QStringLiteral("User"));
+    const KConfigGroup old_libraries = config.group(QStringLiteral("Libraries"));
+    Account account;
+    account.url = old_server.readEntry("Url", QString());
+    account.server_id = old_server.readEntry("Id", account.url);
+    account.name = old_server.readEntry("Name", QString());
+    account.version = old_server.readEntry("Version", QString());
+    account.token = old_user.readEntry("Token", QString());
+    account.user_id = old_user.readEntry("Id", QString());
+    account.user_name = old_user.readEntry("Name", QString());
+    account.libraries_chosen = old_libraries.readEntry("Chosen", false);
+    account.hidden_libraries = old_libraries.readEntry("Hidden", QStringList());
+    account.library_cache = old_libraries.readEntry("Cache", QStringList());
+    accounts_.append(account);
+    active = account.server_id;
   }
-  KConfigGroup libraries = config.group(QStringLiteral("Libraries"));
-  libraries_chosen_ = libraries.readEntry("Chosen", false);
-  hidden_library_ids_ = libraries.readEntry("Hidden", QStringList());  // hidden ids, see save()
-  // Cached so the home menu can show before the server answers.
-  const QStringList cached = libraries.readEntry("Cache", QStringList());
-  for (const QString& entry : cached) {
-    const QStringList parts = entry.split(QLatin1Char('\t'));
-    if (parts.size() != 3) continue;
-    libraries_.append({parts[0], parts[1], parts[2], !hidden_library_ids_.contains(parts[0])});
+  for (const Account& account : accounts_) {
+    if (account.server_id == active) applyAccount(account);
   }
+  if (!server_id_.isEmpty()) state_ = api_->token().isEmpty() ? State::SignedOut : State::SignedIn;
 
   if (state_ == State::SignedIn) {
     events_->start();
@@ -137,33 +150,159 @@ void Session::load() {
   }
 }
 
-void Session::save() const {
+void Session::save() {
+  if (!server_id_.isEmpty()) {
+    const Account current = currentAccount();
+    bool found = false;
+    for (Account& account : accounts_) {
+      if (account.server_id == current.server_id) {
+        account = current;
+        found = true;
+      }
+    }
+    if (!found) accounts_.append(current);
+  }
+
   const QString path = statePath();
   QDir().mkpath(QFileInfo(path).absolutePath());
   KConfig config(path, KConfig::SimpleConfig);
   config.group(QStringLiteral("Device")).writeEntry("Id", api_->deviceId());
-  KConfigGroup server = config.group(QStringLiteral("Server"));
-  server.writeEntry("Url", api_->baseUrl().toString());
-  server.writeEntry("Id", server_id_);
-  server.writeEntry("Name", server_name_);
-  server.writeEntry("Version", server_version_);
-  KConfigGroup user = config.group(QStringLiteral("User"));
-  user.writeEntry("Token", api_->token());
-  user.writeEntry("Id", user_id_);
-  user.writeEntry("Name", user_name_);
-  KConfigGroup libraries = config.group(QStringLiteral("Libraries"));
-  libraries.writeEntry("Chosen", libraries_chosen_);
-  // Hidden rather than shown, so a library added on the server later shows up.
-  QStringList hidden;
-  QStringList cache;
-  for (const Library& library : libraries_) {
-    if (!library.shown) hidden.append(library.id);
-    cache.append(QStringList{library.id, library.name, library.collection_type}.join(QLatin1Char('\t')));
+  for (const QString& name : config.groupList()) {
+    if (name.startsWith(QLatin1String("Account ")) || name == QLatin1String("Server") ||
+        name == QLatin1String("User") || name == QLatin1String("Libraries")) {
+      config.deleteGroup(name);
+    }
   }
-  libraries.writeEntry("Hidden", hidden);
-  libraries.writeEntry("Cache", cache);
+  QStringList order;
+  for (const Account& account : accounts_) {
+    order.append(account.server_id);
+    KConfigGroup group = config.group(QStringLiteral("Account ") + account.server_id);
+    group.writeEntry("Url", account.url);
+    group.writeEntry("Name", account.name);
+    group.writeEntry("Version", account.version);
+    group.writeEntry("Token", account.token);
+    group.writeEntry("UserId", account.user_id);
+    group.writeEntry("UserName", account.user_name);
+    group.writeEntry("LibrariesChosen", account.libraries_chosen);
+    group.writeEntry("HiddenLibraries", account.hidden_libraries);
+    group.writeEntry("LibraryCache", account.library_cache);
+  }
+  KConfigGroup accounts = config.group(QStringLiteral("Accounts"));
+  accounts.writeEntry("Order", order);
+  // While the picker is up for another server, a restart returns to the
+  // one in use before.
+  accounts.writeEntry("Active", server_id_.isEmpty() ? previous_server_id_ : server_id_);
   config.sync();
   QFile::setPermissions(path, QFileDevice::ReadOwner | QFileDevice::WriteOwner);
+  emit accountsChanged();
+}
+
+Session::Account Session::currentAccount() const {
+  Account account;
+  account.server_id = server_id_;
+  account.url = api_->baseUrl().toString();
+  account.name = server_name_;
+  account.version = server_version_;
+  account.token = api_->token();
+  account.user_id = user_id_;
+  account.user_name = user_name_;
+  account.libraries_chosen = libraries_chosen_;
+  // Hidden rather than shown, so a library added on the server later shows up.
+  for (const Library& library : libraries_) {
+    if (!library.shown) account.hidden_libraries.append(library.id);
+    account.library_cache.append(
+        QStringList{library.id, library.name, library.collection_type}.join(QLatin1Char('\t')));
+  }
+  if (libraries_.isEmpty()) account.hidden_libraries = hidden_library_ids_;
+  return account;
+}
+
+void Session::applyAccount(const Account& account) {
+  ++account_generation_;
+  api_->setBaseUrl(QUrl(account.url));
+  api_->setToken(account.token);
+  server_id_ = account.server_id;
+  server_name_ = account.name;
+  server_version_ = account.version;
+  user_id_ = account.user_id;
+  user_name_ = account.user_name;
+  libraries_chosen_ = account.libraries_chosen;
+  hidden_library_ids_ = account.hidden_libraries;
+  // Cached so the home menu can show before the server answers.
+  libraries_.clear();
+  for (const QString& entry : account.library_cache) {
+    const QStringList parts = entry.split(QLatin1Char('\t'));
+    if (parts.size() != 3) continue;
+    libraries_.append({parts[0], parts[1], parts[2], !hidden_library_ids_.contains(parts[0])});
+  }
+}
+
+void Session::clearCurrent() {
+  cancelQuickConnect();
+  applyAccount(Account());
+  emit serverChanged();
+  emit userChanged();
+  emit librariesChanged();
+}
+
+QVariantList Session::accounts() const {
+  QVariantList result;
+  for (const Account& saved : accounts_) {
+    const bool active = saved.server_id == server_id_;
+    const Account account = active ? currentAccount() : saved;
+    result.append(QVariantMap{{QStringLiteral("serverId"), account.server_id},
+                              {QStringLiteral("name"), account.name.isEmpty() ? account.url : account.name},
+                              {QStringLiteral("userName"), account.user_name},
+                              {QStringLiteral("url"), account.url},
+                              {QStringLiteral("active"), active},
+                              {QStringLiteral("signedIn"), !account.token.isEmpty()}});
+  }
+  return result;
+}
+
+void Session::switchAccount(const QString& server_id) {
+  const Account* target = nullptr;
+  for (const Account& account : accounts_) {
+    if (account.server_id == server_id) target = &account;
+  }
+  if (target == nullptr) return;
+  const Account account = *target;
+  if (server_id == server_id_ && state_ != State::NoServer) return;
+  if (!server_id_.isEmpty()) save();
+  cancelQuickConnect();
+  events_->stop();
+  setError(QString());
+  applyAccount(account);
+  previous_server_id_.clear();
+  save();
+  qCInfo(lcSession).noquote() << "switched to" << server_name_ << account.url;
+  emit serverChanged();
+  emit userChanged();
+  emit librariesChanged();
+  if (api_->token().isEmpty()) {
+    // Signing in needs to know whether Quick Connect is on; the probe
+    // finds out and moves on to the sign-in page.
+    connectToServerTask(account.url);
+    return;
+  }
+  const bool same_state = state_ == State::SignedIn;
+  setState(State::SignedIn);
+  validateSessionTask();
+  refreshLibrariesTask();
+  if (same_state) emit accountSwitched();
+}
+
+void Session::addServer() {
+  if (state_ == State::NoServer) return;
+  save();
+  previous_server_id_ = server_id_;
+  clearCurrent();
+  save();
+  setState(State::NoServer);
+}
+
+void Session::cancelAddServer() {
+  if (!previous_server_id_.isEmpty()) switchAccount(previous_server_id_);
 }
 
 QString Session::serverUrl() const { return api_->baseUrl().toString(); }
@@ -286,16 +425,19 @@ QCoro::Task<> Session::connectToServerTask(QString address) {
     const QJsonObject info = reply.object();
     if (!reply.ok() || info.value(QStringLiteral("Id")).toString().isEmpty()) continue;
 
-    // A different server means a different user and libraries.
-    if (info.value(QStringLiteral("Id")).toString() != server_id_) {
-      api_->setToken(QString());
-      user_id_.clear();
-      user_name_.clear();
-      libraries_.clear();
-      libraries_chosen_ = false;
+    // A different server means a different user and libraries: its saved
+    // sign-in when it has one, else a fresh start.
+    const QString id = info.value(QStringLiteral("Id")).toString();
+    if (id != server_id_) {
+      Account account;
+      for (const Account& saved : accounts_) {
+        if (saved.server_id == id) account = saved;
+      }
+      applyAccount(account);
       emit userChanged();
       emit librariesChanged();
     }
+    previous_server_id_.clear();
     api_->setBaseUrl(candidate);
     server_id_ = info.value(QStringLiteral("Id")).toString();
     server_name_ = info.value(QStringLiteral("ServerName")).toString();
@@ -317,20 +459,12 @@ QCoro::Task<> Session::connectToServerTask(QString address) {
 }
 
 void Session::forgetServer() {
-  cancelQuickConnect();
-  api_->setToken(QString());
-  api_->setBaseUrl(QUrl());
-  server_id_.clear();
-  server_name_.clear();
-  server_version_.clear();
-  user_id_.clear();
-  user_name_.clear();
-  libraries_.clear();
-  libraries_chosen_ = false;
+  const QString id = server_id_;
+  accounts_.removeIf([&id](const Account& account) { return account.server_id == id; });
+  clearCurrent();
+  // The picker can go back to another saved server.
+  previous_server_id_ = accounts_.isEmpty() ? QString() : accounts_.first().server_id;
   save();
-  emit serverChanged();
-  emit userChanged();
-  emit librariesChanged();
   setState(State::NoServer);
 }
 
@@ -440,8 +574,9 @@ void Session::signOut() {
 
 QCoro::Task<> Session::validateSessionTask() {
   QPointer<Session> self(this);
+  const quint64 generation = account_generation_;
   const Reply reply = co_await api_->get(QStringLiteral("/Users/Me"));
-  if (!self) co_return;
+  if (!self || generation != account_generation_) co_return;
   if (reply.status == 401 || reply.status == 403) {
     qCWarning(lcSession) << "the server refused the saved token";
     api_->setToken(QString());
@@ -463,10 +598,11 @@ void Session::refreshLibraries() { refreshLibrariesTask(); }
 
 QCoro::Task<> Session::refreshLibrariesTask() {
   QPointer<Session> self(this);
+  const quint64 generation = account_generation_;
   QUrlQuery query;
   query.addQueryItem(QStringLiteral("userId"), user_id_);
   const Reply reply = co_await api_->get(QStringLiteral("/UserViews"), query);
-  if (!self) co_return;
+  if (!self || generation != account_generation_) co_return;
   if (!reply.ok()) co_return;
   QStringList hidden;
   for (const Library& library : libraries_) {

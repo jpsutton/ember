@@ -28,8 +28,9 @@ Environment variables:
 ## Files Ember keeps
 
 - `~/.config/emberrc`: settings, and the list style chosen for each library.
-- `~/.local/state/ember/session`: the server and the access token, readable
-  only by its owner.
+- `~/.local/state/ember/session`: every server signed in to, each with its
+  access token and library choices, and which one is in use. Readable only
+  by its owner. An older single-server file is converted on first start.
 - `~/.cache/ember`: cached artwork.
 
 On couchbox, Ember also reads `~/.config/couchboxrc`. Its `[Video]` keys

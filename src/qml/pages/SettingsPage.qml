@@ -43,7 +43,7 @@ FocusScope {
         { title: qsTr("Left and Right seek"), detail: EmberSettings.seekStepSeconds + " s",
           action: () => { EmberSettings.seekStepSeconds = cycle([5, 10, 15, 30, 60], EmberSettings.seekStepSeconds); EmberSettings.save() } },
         { title: qsTr("Sign out"), detail: Session.userName, action: () => Session.signOut() },
-        { title: qsTr("Server"), detail: Session.serverName + " " + Session.serverVersion, action: () => {} },
+        { title: qsTr("Server"), detail: Session.serverName + " " + Session.serverVersion, action: () => page.app.switchServer() },
     ]
 
     Rectangle { anchors.fill: parent; color: Theme.background }

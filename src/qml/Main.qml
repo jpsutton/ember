@@ -104,6 +104,20 @@ Window {
         stack.push(infoPage, { itemId: item.id, context: context || {} })
     }
 
+    // The saved servers to switch to, and adding another.
+    function switchServer() {
+        const accounts = Session.accounts
+        const options = accounts.map(a => ({
+            title: a.name, checked: a.active,
+            detail: a.signedIn ? a.userName : qsTr("Not signed in")
+        }))
+        options.push({ title: qsTr("Add a server") })
+        menu.open(qsTr("Switch server"), options, (i) => {
+            if (i < accounts.length) Session.switchAccount(accounts[i].serverId)
+            else Session.addServer()
+        }, "left", Math.max(0, accounts.findIndex(a => a.active)))
+    }
+
     function goHome() {
         if (Session.state === Session.SignedIn && Session.librariesChosen && stack.depth > 1) stack.pop(null)
     }
@@ -153,6 +167,7 @@ Window {
     Connections {
         target: Session
         function onStateChanged() { window.resetFlow() }
+        function onAccountSwitched() { window.resetFlow() }
 
         // "Play On" from another Jellyfin client.
         function onRemotePlay(itemIds, startSeconds, startIndex, command) {

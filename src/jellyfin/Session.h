@@ -20,8 +20,10 @@ namespace ember::jellyfin {
 class ApiClient;
 class EventSocket;
 
-// The signed-in server and user, and the libraries the user chose to show.
-// Persisted in ~/.local/state/ember/session (mode 0600; it holds the token).
+// The server in use and its signed-in user, the libraries the user chose to
+// show, and every other server signed in to on this box (one user each), so
+// switching between them needs no new sign-in. Persisted in
+// ~/.local/state/ember/session (mode 0600; it holds the tokens).
 class Session : public QObject {
   Q_OBJECT
   QML_ELEMENT
@@ -45,6 +47,11 @@ class Session : public QObject {
   Q_PROPERTY(QVariantList shownLibraries READ shownLibraries NOTIFY librariesChanged)
   // False until the user has confirmed the library picker once.
   Q_PROPERTY(bool librariesChosen READ librariesChosen NOTIFY librariesChanged)
+  // The saved servers, the one in use included, in the order they were
+  // added: {serverId, name, userName, url, active, signedIn}.
+  Q_PROPERTY(QVariantList accounts READ accounts NOTIFY accountsChanged)
+  // After addServer(): the server picker can go back to the server in use.
+  Q_PROPERTY(bool canCancelAddServer READ canCancelAddServer NOTIFY accountsChanged)
 
  public:
   enum class State {
@@ -81,13 +88,22 @@ class Session : public QObject {
   QVariantList libraries() const;
   QVariantList shownLibraries() const;
   bool librariesChosen() const { return libraries_chosen_; }
+  QVariantList accounts() const;
+  bool canCancelAddServer() const { return state_ == State::NoServer && !previous_server_id_.isEmpty(); }
 
   // Looks for servers on the local networks (UDP 7359 broadcast).
   Q_INVOKABLE void discover();
   // Accepts "host", "host:port" or a full URL; tries the usual schemes and
   // ports for a bare host.
   Q_INVOKABLE void connectToServer(const QString& address);
+  // Drops the server in use (and its sign-in) and goes to the server picker.
   Q_INVOKABLE void forgetServer();
+  // Makes a saved server the one in use, signed in as it was.
+  Q_INVOKABLE void switchAccount(const QString& server_id);
+  // Goes to the server picker to add another server; the saved ones stay.
+  Q_INVOKABLE void addServer();
+  // Back from the picker to the server in use before addServer().
+  Q_INVOKABLE void cancelAddServer();
   Q_INVOKABLE void signIn(const QString& user, const QString& password);
   Q_INVOKABLE void startQuickConnect();
   Q_INVOKABLE void cancelQuickConnect();
@@ -110,6 +126,10 @@ class Session : public QObject {
   void discoveringChanged();
   void quickConnectChanged();
   void librariesChanged();
+  void accountsChanged();
+  // Another saved server is now in use, with the same state as the last
+  // one (stateChanged covers the rest): the pages should start over.
+  void accountSwitched();
   // The token was refused; the user has to sign in again.
   void signedOutByServer();
   // From the server's event stream.
@@ -128,6 +148,20 @@ class Session : public QObject {
     bool shown = true;
   };
 
+  // One saved server and its user, as stored.
+  struct Account {
+    QString server_id;
+    QString url;
+    QString name;
+    QString version;
+    QString token;
+    QString user_id;
+    QString user_name;
+    bool libraries_chosen = false;
+    QStringList hidden_libraries;
+    QStringList library_cache;  // "id\tname\ttype" per library, in menu order
+  };
+
   QCoro::Task<> connectToServerTask(QString address);
   QCoro::Task<> signInTask(QString user, QString password);
   QCoro::Task<> quickConnectTask();
@@ -138,7 +172,10 @@ class Session : public QObject {
   void setBusy(bool busy);
   void setError(const QString& error);
   void load();
-  void save() const;
+  void save();
+  Account currentAccount() const;
+  void applyAccount(const Account& account);
+  void clearCurrent();
   QString statePath() const;
 
   QNetworkAccessManager* network_;
@@ -160,6 +197,13 @@ class Session : public QObject {
   QList<Library> libraries_;
   QStringList hidden_library_ids_;
   bool libraries_chosen_ = false;
+  // Every saved server, the one in use included (kept current by save()).
+  QList<Account> accounts_;
+  // The server in use when addServer() went to the picker.
+  QString previous_server_id_;
+  // Bumped whenever another server comes into use, so replies meant for the
+  // last one are dropped.
+  quint64 account_generation_ = 0;
 };
 
 }  // namespace ember::jellyfin

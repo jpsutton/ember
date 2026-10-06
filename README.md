@@ -12,6 +12,8 @@ details, and everything done with a TV remote.
 - Finds your Jellyfin server on the network and signs you in with a code
   from your phone or with your password.
 - Puts the libraries you choose on the home menu.
+- Remembers every server you sign in to. Switch between them from Settings
+  on the home menu.
 - Shows what's new in each library: recently added, and recently aired. An
   episode that a streaming service releases early shows up when it arrives,
   not weeks later when it officially airs.
@@ -53,13 +55,15 @@ details, and everything done with a TV remote.
 
 **Home menu.** Up and Down pick a library. OK opens it. Left shows more ways
 to browse it: recently added, recently aired, in progress, genres and so on.
+Left on Settings offers Switch server.
 
 **Lists.**
 
 - OK plays a film or episode, or opens a show.
 - Info shows the details page.
 - Menu, or holding OK, shows options such as "mark watched".
-- Left changes the sort order and the look of the list.
+- Left changes the sort order and the look of the list. On a show or a
+  season, it also offers Shuffle.
 - Right moves to the scroll bar. There, Up and Down move a page at a time.
 - Channel up and down also move a page at a time.
 

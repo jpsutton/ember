@@ -22,11 +22,11 @@ all driven by a TV remote. Qt 6 (QML) and C++, with mpv for playback.
   </tr>
   <tr>
     <td><img src="docs/screenshots/episodes.jpg" alt="A season's episodes"></td>
-    <td><img src="docs/screenshots/side-blade.jpg" alt="The view options blade"></td>
+    <td><img src="docs/screenshots/recently-aired.jpg" alt="Recently aired episodes across a show library"></td>
   </tr>
   <tr>
     <td>Episodes, with watched and in-progress marks.</td>
-    <td>Left on a list opens the view options, including Recently added and Recently aired.</td>
+    <td>Recently aired: a show library's newest episodes, whichever show they belong to.</td>
   </tr>
   <tr>
     <td><img src="docs/screenshots/info.jpg" alt="An item's information page"></td>
@@ -47,15 +47,16 @@ whatever the server's metadata providers supplied.
   type its address), sign in with Quick Connect (or a user name and
   password), then choose which libraries the home menu shows.
 - **Home**: Up/Down move through the menu, OK opens a library, Left or Back
-  opens its submenu (recently added, in progress, genres, years,
-  collections and so on).
+  opens its submenu (recently added, recently aired, in progress, genres,
+  years, collections and so on). Recently added and Recently aired list the
+  library's films or episodes, newest first; an episode a streaming service
+  released before its air date counts as aired when it was added.
 - **Lists**: OK opens folders, shows and seasons, and plays movies and
   episodes (resuming where you left off). Info opens the item's details.
   Menu, or OK held for a moment, opens the context menu (play from the
   beginning, mark watched, go to the show). Left opens the view options
-  (sort, order, hide watched, list style; on a whole library also Recently
-  added and Recently aired); Right, when sorted by name, opens the A–Z
-  strip. Channel +/− page the list.
+  (sort, order, hide watched, list style); Right, when sorted by name,
+  opens the A–Z strip. Channel +/− page the list.
 - **Playing**: OK or Play/Pause pauses, Left/Right seek, Up/Down and
   Channel +/− jump between chapters, Menu (or held OK) picks audio,
   subtitles and chapters, Info shows or hides the panel, Back or Stop ends

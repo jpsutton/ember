@@ -23,31 +23,41 @@ FocusScope {
         const types = page.app.libraryTypes(library.collectionType)
         const context = { libraryId: library.id, collectionType: library.collectionType, viewKey: library.id }
         const all = { mode: "items", parentId: library.id, includeTypes: types, recursive: types !== "" }
+        // The library's playable items (films, episodes) newest first: by
+        // date added, or by the date they aired or became available.
+        const leaves = { parentId: library.id, includeTypes: page.app.leafTypes(library.collectionType) }
+        const added = Object.assign({ mode: "items", recursive: true, sortBy: "DateCreated", descending: true }, leaves)
+        const aired = Object.assign({ mode: "aired" }, leaves)
         const entries = []
         function add(title, query, extra) {
             entries.push({ title: title, query: query, context: Object.assign({}, context, extra || {}) })
         }
+        function addRecent() {
+            add(qsTr("Recently added"), added, { viewKey: library.id + "-recent", fixedSort: true,
+                                                 listTitle: library.name + " · " + qsTr("Recently added") })
+            add(qsTr("Recently aired"), aired, { viewKey: library.id + "-aired", fixedSort: true,
+                                                 listTitle: library.name + " · " + qsTr("Recently aired") })
+        }
         if (library.collectionType === "movies") {
-            add(qsTr("All movies"), all, { libraryRoot: true })
-            add(qsTr("Recently added"), Object.assign({}, all, { sortBy: "DateCreated", descending: true }), { viewKey: library.id + "-recent", fixedSort: true })
+            add(qsTr("All movies"), all)
+            addRecent()
             add(qsTr("In progress"), { mode: "resume", parentId: library.id, includeTypes: "Movie" }, { viewKey: "", fixedSort: true })
             add(qsTr("Unwatched"), Object.assign({}, all, { hideWatched: true }), { viewKey: library.id + "-unwatched" })
             add(qsTr("Genres"), { mode: "genres", parentId: library.id, includeTypes: "Movie" }, { viewKey: "", fixedSort: true })
             add(qsTr("Years"), { mode: "years", parentId: library.id, includeTypes: "Movie" }, { viewKey: "", fixedSort: true })
             add(qsTr("Collections"), { mode: "items", includeTypes: "BoxSet", recursive: true }, { viewKey: "collections" })
         } else if (library.collectionType === "tvshows") {
-            add(qsTr("All shows"), all, { libraryRoot: true })
+            add(qsTr("All shows"), all)
             add(qsTr("Next up"), { mode: "nextup", parentId: library.id }, { viewKey: "", fixedSort: true })
-            add(qsTr("Recently added episodes"), { mode: "items", parentId: library.id, includeTypes: "Episode", recursive: true,
-                                                   sortBy: "DateCreated", descending: true }, { viewKey: "", fixedSort: true })
+            addRecent()
             add(qsTr("In progress"), { mode: "resume", parentId: library.id, includeTypes: "Episode" }, { viewKey: "", fixedSort: true })
             add(qsTr("Unwatched shows"), Object.assign({}, all, { hideWatched: true }), { viewKey: library.id + "-unwatched" })
             add(qsTr("Genres"), { mode: "genres", parentId: library.id, includeTypes: "Series" }, { viewKey: "", fixedSort: true })
             add(qsTr("Years"), { mode: "years", parentId: library.id, includeTypes: "Series" }, { viewKey: "", fixedSort: true })
         } else {
-            add(qsTr("Browse"), all, { libraryRoot: true })
-            add(qsTr("Recently added"), { mode: "items", parentId: library.id, recursive: true, includeTypes: "Movie,Episode,Video",
-                                          sortBy: "DateCreated", descending: true }, { viewKey: "", fixedSort: true })
+            add(qsTr("Browse"), all)
+            // A collection library's films aren't its descendants.
+            if (library.collectionType !== "boxsets") addRecent()
             add(qsTr("In progress"), { mode: "resume", parentId: library.id }, { viewKey: "", fixedSort: true })
         }
         return entries
@@ -208,7 +218,7 @@ FocusScope {
             onActivated: (index) => {
                 const entry = submenu.model[index]
                 page.closeSubmenu()
-                page.app.openList(entry.title, entry.query, entry.context)
+                page.app.openList(entry.context.listTitle || entry.title, entry.query, entry.context)
             }
             Keys.onPressed: (event) => {
                 if (event.key === Qt.Key_Right || event.key === Qt.Key_Back || event.key === Qt.Key_Left) {

@@ -32,7 +32,7 @@ Window {
     }
 
     // The playable items a library holds, for its Recently added and
-    // Recently aired lists.
+    // Recently aired submenu entries.
     function leafTypes(collectionType) {
         switch (collectionType) {
         case "movies": return "Movie"
@@ -47,19 +47,7 @@ Window {
         const types = libraryTypes(library.collectionType)
         openList(library.name, {
             mode: "items", parentId: library.id, includeTypes: types, recursive: types !== ""
-        }, { libraryId: library.id, collectionType: library.collectionType, viewKey: library.id, libraryRoot: true })
-    }
-
-    // A library's newest playable items: by date added, or by the date they
-    // aired (or became available, when that was earlier).
-    function openRecent(title, context, aired) {
-        const query = { parentId: context.libraryId, includeTypes: leafTypes(context.collectionType) }
-        if (aired) Object.assign(query, { mode: "aired" })
-        else Object.assign(query, { mode: "items", recursive: true, sortBy: "DateCreated", descending: true })
-        openList(title, query, {
-            libraryId: context.libraryId, collectionType: context.collectionType, fixedSort: true,
-            viewKey: context.libraryId + (aired ? "-aired" : "-recent")
-        })
+        }, { libraryId: library.id, collectionType: library.collectionType, viewKey: library.id })
     }
 
     function openList(title, query, context) {

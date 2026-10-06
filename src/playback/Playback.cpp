@@ -4,6 +4,7 @@
 
 #include <mpv/client.h>
 
+#include <QDateTime>
 #include <QJsonDocument>
 #include <QLoggingCategory>
 #include <QRegularExpression>
@@ -24,6 +25,9 @@ Q_LOGGING_CATEGORY(lcPlayback, "ember.playback")
 
 namespace ember {
 namespace {
+
+// Live: how far short of the live edge skips stop.
+constexpr double kLiveMarginSeconds = 3.0;
 
 using jellyfin::ApiClient;
 using jellyfin::Reply;
@@ -75,6 +79,7 @@ void Playback::setVideo(MpvVideo* video) {
       video_->observe(QString::fromLatin1(name), QStringLiteral("flag"));
     }
     video_->observe(QStringLiteral("track-list"), QStringLiteral("node"));
+    video_->observe(QStringLiteral("demuxer-cache-state"), QStringLiteral("node"));
     applyAudioSettings();
     if (CouchboxConfig().fastScaling()) {
       // couchbox's profile for weak GPUs: cheap scalers, no dithering.
@@ -141,6 +146,7 @@ void Playback::setError(const QString& error) {
 
 void Playback::play(const QString& item_id, bool from_start) {
   stopShuffle();
+  live_retried_ = false;
   playTask(item_id, from_start, -1, ++generation_);
 }
 
@@ -206,7 +212,10 @@ QCoro::Task<> Playback::playTask(QString item_id, bool from_start, double start_
     const QString previous = item_.value(QStringLiteral("id")).toString();
     const bool finished_previous = mark_previous_played_;
     mark_previous_played_ = false;
+    const QString unstarted_live = live_ && !started_reported_ ? stream_.live_stream_id : QString();
     co_await report(QStringLiteral("Stopped"));
+    if (!self) co_return;
+    if (!unstarted_live.isEmpty()) co_await closeLiveStream(unstarted_live);
     if (!self) co_return;
     if (finished_previous && !previous.isEmpty()) {
       // Moving on from Up Next means the episode was watched, even when the
@@ -254,6 +263,11 @@ QCoro::Task<> Playback::playTask(QString item_id, bool from_start, double start_
   }
   item_json_ = reply.object();
   item_ = jellyfin::ItemToVariant(item_json_, api);
+  live_ = Str(item_json_, "Type") == QLatin1String("TvChannel");
+  live_started_ms_ = QDateTime::currentMSecsSinceEpoch();
+  seekable_start_ = live_edge_ = live_gap_ = 0;
+  shifted_ = false;
+  emit cacheChanged();
 
   chapters_.clear();
   for (const QJsonValue& value : item_json_.value(QStringLiteral("Chapters")).toArray()) {
@@ -265,13 +279,15 @@ QCoro::Task<> Playback::playTask(QString item_id, bool from_start, double start_
   emit itemChanged();
 
   const qint64 saved = item_json_.value(QStringLiteral("UserData")).toObject().value(QStringLiteral("PlaybackPositionTicks")).toInteger();
-  start_seconds_ = start_seconds >= 0 ? start_seconds : from_start ? 0 : Seconds(saved);
+  // A channel has no position to resume.
+  start_seconds_ = live_ ? 0 : start_seconds >= 0 ? start_seconds : from_start ? 0 : Seconds(saved);
   audio_index_ = -1;
   subtitle_index_ = -2;  // not chosen yet
   if (!co_await negotiate(start_seconds_, generation)) co_return;
   if (!self || generation != generation_) co_return;
   chooseDefaultTracks();
   loadStream(start_seconds_);
+  if (live_) co_return;
   loadSegments(item_id, generation);
   loadNextItem(item_json_, generation);
 }
@@ -364,12 +380,17 @@ QCoro::Task<bool> Playback::negotiate(double start_seconds, quint64 generation) 
   stream.source = source;
   stream.media_source_id = Str(source, "Id");
   stream.play_session_id = Str(reply.object(), "PlaySessionId");
+  stream.live_stream_id = Str(source, "LiveStreamId");
   const QString transcoding_url = Str(source, "TranscodingUrl");
+  if (stream.live_stream_id.isEmpty() && !transcoding_url.isEmpty()) {
+    stream.live_stream_id = QUrlQuery(QUrl(transcoding_url)).queryItemValue(QStringLiteral("LiveStreamId"));
+  }
   if (source.value(QStringLiteral("SupportsDirectPlay")).toBool() || transcoding_url.isEmpty()) {
     QUrlQuery stream_query;
     stream_query.addQueryItem(QStringLiteral("Static"), QStringLiteral("true"));
     stream_query.addQueryItem(QStringLiteral("MediaSourceId"), stream.media_source_id);
     if (!stream.play_session_id.isEmpty()) stream_query.addQueryItem(QStringLiteral("PlaySessionId"), stream.play_session_id);
+    if (!stream.live_stream_id.isEmpty()) stream_query.addQueryItem(QStringLiteral("LiveStreamId"), stream.live_stream_id);
     stream_query.addQueryItem(QStringLiteral("DeviceId"), api->deviceId());
     stream.url = api->authenticatedUrl(QStringLiteral("/Videos/%1/stream").arg(item_id), stream_query).toString();
     stream.method = QStringLiteral("DirectPlay");
@@ -458,6 +479,11 @@ void Playback::loadStream(double start_seconds) {
   QStringList command{QStringLiteral("loadfile"), stream_.url, QStringLiteral("replace"), QStringLiteral("-1")};
   QStringList options;
   if (start_seconds > 0) options << QStringLiteral("start=%1").arg(start_seconds, 0, 'f', 3);
+  if (live_) {
+    // A cache to pause and skip back in (couchbox-iptv's sizes).
+    options << QStringLiteral("demuxer-seekable-cache=yes") << QStringLiteral("demuxer-max-bytes=256MiB")
+            << QStringLiteral("demuxer-max-back-bytes=128MiB") << QStringLiteral("demuxer-readahead-secs=10");
+  }
   options << QStringLiteral("force-media-title=%1").arg(QString(title()).remove(QLatin1Char(',')));
   command << options.join(QLatin1Char(','));
   video_->setOption(QStringLiteral("pause"), false);
@@ -595,13 +621,40 @@ void Playback::setPaused(bool paused) {
 }
 
 void Playback::seekRelative(double seconds) {
+  if (live_) {
+    seekTo(position_ + seconds);
+    return;
+  }
   if (video_ && state_ == State::Playing) video_->command({QStringLiteral("seek"), QString::number(seconds), QStringLiteral("relative")});
 }
 
 void Playback::seekTo(double seconds) {
-  if (video_ && state_ == State::Playing) {
-    video_->command({QStringLiteral("seek"), QString::number(std::max(0.0, seconds), 'f', 3), QStringLiteral("absolute")});
+  if (!video_ || state_ != State::Playing) return;
+  if (live_) {
+    // Only within the cache, and short of the edge, so the picture never
+    // catches up with the stream and stalls.
+    seconds = std::clamp(seconds, seekable_start_, std::max(seekable_start_, live_edge_ - kLiveMarginSeconds));
+    if (seconds < position_) shifted_ = true;
   }
+  video_->command({QStringLiteral("seek"), QString::number(std::max(0.0, seconds), 'f', 3), QStringLiteral("absolute")});
+}
+
+void Playback::backToLive() {
+  if (!live_) return;
+  setPaused(false);
+  seekTo(live_edge_);
+  shifted_ = false;
+  emit cacheChanged();
+}
+
+QCoro::Task<> Playback::closeLiveStream(QString live_stream_id) {
+  if (live_stream_id.isEmpty()) co_return;
+  Session* session = Session::instance();
+  if (session == nullptr) co_return;
+  QUrlQuery query;
+  query.addQueryItem(QStringLiteral("liveStreamId"), live_stream_id);
+  const Reply reply = co_await session->api()->post(QStringLiteral("/LiveStreams/Close"), {}, query);
+  qCInfo(lcPlayback).noquote() << "closed live stream:" << (reply.ok() ? QStringLiteral("ok") : reply.error);
 }
 
 void Playback::stop() {
@@ -615,6 +668,7 @@ void Playback::endSession(bool completed) {
   if (session_open_) {
     session_open_ = false;
     report(QStringLiteral("Stopped"));
+    if (live_ && !started_reported_) closeLiveStream(stream_.live_stream_id);
   }
   setState(completed ? State::Ended : State::Idle);
   emit finished(completed);
@@ -633,17 +687,20 @@ void Playback::playNext() {
 }
 
 QJsonObject Playback::progressBody() const {
+  // Live: the position is how long the stream has been watched.
+  const double position = live_ ? (QDateTime::currentMSecsSinceEpoch() - live_started_ms_) / 1000.0 : position_;
   QJsonObject body{{QStringLiteral("ItemId"), item_.value(QStringLiteral("id")).toString()},
                    {QStringLiteral("MediaSourceId"), stream_.media_source_id},
-                   {QStringLiteral("PositionTicks"), Ticks(position_)},
+                   {QStringLiteral("PositionTicks"), Ticks(position)},
                    {QStringLiteral("IsPaused"), paused_},
                    {QStringLiteral("IsMuted"), false},
-                   {QStringLiteral("CanSeek"), true},
+                   {QStringLiteral("CanSeek"), !live_},
                    {QStringLiteral("PlayMethod"), stream_.method},
                    {QStringLiteral("AudioStreamIndex"), audio_index_},
                    {QStringLiteral("SubtitleStreamIndex"), subtitle_index_},
                    {QStringLiteral("RepeatMode"), QStringLiteral("RepeatNone")}};
   if (!stream_.play_session_id.isEmpty()) body.insert(QStringLiteral("PlaySessionId"), stream_.play_session_id);
+  if (!stream_.live_stream_id.isEmpty()) body.insert(QStringLiteral("LiveStreamId"), stream_.live_stream_id);
   return body;
 }
 
@@ -758,6 +815,7 @@ void Playback::onMpvEvent(const QString& name, const QVariantMap& data) {
     const int reason = data.value(QStringLiteral("reason")).toInt();
     if (reason == MPV_END_FILE_REASON_ERROR && state_ == State::Loading) {
       setError(tr("Playback failed: %1").arg(data.value(QStringLiteral("message")).toString()));
+      if (live_) closeLiveStream(stream_.live_stream_id);
       session_open_ = false;
       progress_timer_.stop();
       setState(State::Failed);
@@ -777,6 +835,7 @@ void Playback::onMpvProperty(const QString& name, const QVariant& value) {
     const bool paused = value.toBool();
     if (paused == paused_) return;
     paused_ = paused;
+    if (live_ && paused) shifted_ = true;
     emit pausedChanged();
     if (started_reported_ && session_open_) report(QStringLiteral("Progress"));
   } else if (name == QLatin1String("paused-for-cache")) {
@@ -784,7 +843,34 @@ void Playback::onMpvProperty(const QString& name, const QVariant& value) {
     emit bufferingChanged();
   } else if (name == QLatin1String("track-list")) {
     mpv_tracks_ = value.toList();
+  } else if (name == QLatin1String("demuxer-cache-state")) {
+    if (!live_) return;
+    const QVariantMap cache = value.toMap();
+    const QVariantList ranges = cache.value(QStringLiteral("seekable-ranges")).toList();
+    seekable_start_ = ranges.isEmpty() ? position_ : ranges.first().toMap().value(QStringLiteral("start")).toDouble();
+    live_edge_ = cache.value(QStringLiteral("cache-end")).toDouble();
+    const double gap = std::max(0.0, live_edge_ - position_);
+    // At the edge, the gap is just the read-ahead; remember it, so being
+    // behind is measured beyond it.
+    if (!shifted_ && !paused_) live_gap_ = gap;
+    if (shifted_ && !paused_ && gap - live_gap_ < 1.0) shifted_ = false;
+    emit cacheChanged();
   } else if (name == QLatin1String("eof-reached")) {
+    // A live stream doesn't end: the tuner or the server dropped it. Tune
+    // in again once, then give up.
+    if (value.toBool() && live_ && state_ == State::Playing && session_open_) {
+      const QString id = item_.value(QStringLiteral("id")).toString();
+      if (!live_retried_) {
+        live_retried_ = true;
+        qCInfo(lcPlayback) << "live stream ended; tuning in again";
+        playTask(id, true, -1, ++generation_);
+      } else {
+        setError(tr("The channel stopped."));
+        endSession(false);
+        setState(State::Failed);
+      }
+      return;
+    }
     // keep-open holds the last frame instead of ending the file.
     if (value.toBool() && state_ == State::Playing && session_open_) {
       position_ = std::max(position_, duration_);

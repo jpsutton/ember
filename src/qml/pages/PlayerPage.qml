@@ -140,12 +140,6 @@ FocusScope {
         skipBadgeTimer.restart()
     }
 
-    // "+10s", "-1:30": the run so far.
-    function skipLabel() {
-        const total = Math.round(skipTotal)
-        return (skipForward ? "+" : "\u2212") + (total < 60 ? total + "s" : Format.clock(total))
-    }
-
     function jumpChapter(direction) {
         const chapters = playback.chapters
         if (chapters.length === 0) { skip(direction * 60); return }
@@ -372,54 +366,11 @@ FocusScope {
         }
     }
 
-    // The skip readout: the run so far at the side the skip goes, and a
-    // chevron drifting that way. No backing, so it covers as little of the
-    // picture as it can (Plezy's design).
-    Row {
-        id: skipBadge
+    SkipReadout {
         anchors.verticalCenter: parent.verticalCenter
-        // Placed by x: anchors swapped from one side to the other stay put.
-        x: page.skipForward ? parent.width - width - Theme.px(96) : Theme.px(96)
-        // The chevron sits on the outer side.
-        layoutDirection: page.skipForward ? Qt.LeftToRight : Qt.RightToLeft
-        spacing: Theme.px(12)
-        opacity: skipBadgeTimer.running ? 1 : 0
-        visible: opacity > 0
-        Behavior on opacity { NumberAnimation { duration: 300 } }
-
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: page.skipLabel()
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.px(56)
-            font.bold: true
-            color: "white"
-            style: Text.Outline
-            styleColor: "#a0000000"
-        }
-        Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: page.skipForward ? "\u203a" : "\u2039"
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.px(84)
-            font.bold: true
-            color: "white"
-            style: Text.Outline
-            styleColor: "#a0000000"
-            transform: Translate { id: drift }
-            SequentialAnimation {
-                running: skipBadge.visible
-                loops: Animation.Infinite
-                NumberAnimation {
-                    target: drift; property: "x"; from: 0; to: (page.skipForward ? 1 : -1) * Theme.px(14)
-                    duration: 770; easing.type: Easing.OutQuad
-                }
-                NumberAnimation {
-                    target: drift; property: "x"; to: 0
-                    duration: 330; easing.type: Easing.InOutQuad
-                }
-            }
-        }
+        total: page.skipTotal
+        forward: page.skipForward
+        shown: skipBadgeTimer.running
     }
 
     // The on-screen display.

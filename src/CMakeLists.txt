@@ -22,6 +22,7 @@ qt_add_qml_module(ember_lib
     qml/components/ListScrollBar.qml
     qml/components/MenuList.qml
     qml/components/PopupMenu.qml
+    qml/components/SkipReadout.qml
     qml/components/StatusIcon.qml
     qml/components/TextEntry.qml
     qml/pages/HomePage.qml

@@ -10,6 +10,8 @@
 #include <QVariant>
 #include <QtQml/qqmlregistration.h>
 
+#include <algorithm>
+
 #include <QCoroTask>
 
 #include "MpvVideo.h"
@@ -54,6 +56,14 @@ class Playback : public QObject {
   // Playing a show or season in random order (shuffle()); nextItem is then
   // a random episode rather than the following one.
   Q_PROPERTY(bool shuffling READ shuffling NOTIFY shufflingChanged)
+  // A Live TV channel: no resume, no end; the cache keeps the last minutes,
+  // so pausing and skipping back work within it (timeshift).
+  Q_PROPERTY(bool live READ live NOTIFY itemChanged)
+  // The cache in a live stream: the earliest position to skip back to, the
+  // live edge, and how far behind it the picture is (0 while at the edge).
+  Q_PROPERTY(double seekableStart READ seekableStart NOTIFY cacheChanged)
+  Q_PROPERTY(double liveEdge READ liveEdge NOTIFY cacheChanged)
+  Q_PROPERTY(double behindLive READ behindLive NOTIFY cacheChanged)
   // {url (with %1 for the tile index), width, height, tileWidth, tileHeight,
   //  count, interval (seconds)}, or empty.
 
@@ -87,6 +97,10 @@ class Playback : public QObject {
   double creditsStart() const { return credits_start_; }
   QVariantMap nextItem() const { return next_item_; }
   bool shuffling() const { return !shuffle_aired_.isEmpty(); }
+  bool live() const { return live_; }
+  double seekableStart() const { return seekable_start_; }
+  double liveEdge() const { return live_edge_; }
+  double behindLive() const { return shifted_ ? std::max(0.0, live_edge_ - position_ - live_gap_) : 0; }
 
   // Starts |item_id|, resuming from the saved position unless |from_start|.
   Q_INVOKABLE void play(const QString& item_id, bool from_start = false);
@@ -107,6 +121,8 @@ class Playback : public QObject {
   // -1 turns subtitles off.
   Q_INVOKABLE void selectSubtitle(int index);
   Q_INVOKABLE void playNext();
+  // Live: back to just short of the live edge.
+  Q_INVOKABLE void backToLive();
 
  signals:
   void videoChanged();
@@ -123,6 +139,7 @@ class Playback : public QObject {
   void segmentsChanged();
   void nextItemChanged();
   void shufflingChanged();
+  void cacheChanged();
   // Playback ended by the user or at the end of the file, and the server
   // has been told. |completed| is true at the natural end.
   void finished(bool completed);
@@ -135,6 +152,7 @@ class Playback : public QObject {
     QString method;  // DirectPlay, DirectStream, Transcode
     QString media_source_id;
     QString play_session_id;
+    QString live_stream_id;  // a tuner the server opened for this playback
     QJsonObject source;
   };
 
@@ -157,6 +175,9 @@ class Playback : public QObject {
   void setState(State state);
   void setError(const QString& error);
   void endSession(bool completed);
+  // Frees the tuner of a live stream that was opened but never reported as
+  // playing (a Stopped report closes the others).
+  QCoro::Task<> closeLiveStream(QString live_stream_id);
   QVariantList Tracks(const QString& type, int selected) const;
   QJsonObject streamByIndex(int index) const;
   int mpvTrackId(const QString& type, int jellyfin_index) const;
@@ -181,6 +202,16 @@ class Playback : public QObject {
   double intro_end_ = -1;
   double credits_start_ = -1;
   QVariantMap next_item_;
+  bool live_ = false;
+  // Live: when this stream started (reports give the wall-clock position),
+  // whether it has been retuned after ending, the cache's bounds, and the
+  // usual gap between the picture and the edge while not shifted.
+  qint64 live_started_ms_ = 0;
+  bool live_retried_ = false;
+  double seekable_start_ = 0;
+  double live_edge_ = 0;
+  double live_gap_ = 0;
+  bool shifted_ = false;
   // Shuffle: the episodes in airing order, and those still to play.
   QStringList shuffle_aired_;
   QStringList shuffle_queue_;

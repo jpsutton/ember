@@ -75,6 +75,7 @@ FocusScope {
             text: page.item.type === "Episode" ? (page.item.seriesName || "") : (page.item.name || "")
             elide: Text.ElideRight
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.px(64)
             font.bold: true
             color: Theme.text
@@ -86,6 +87,7 @@ FocusScope {
                                                 : (page.item.originalTitle && page.item.originalTitle !== page.item.name ? page.item.originalTitle : "")
             elide: Text.ElideRight
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.px(36)
             color: Theme.text
         }
@@ -95,6 +97,7 @@ FocusScope {
             text: [page.item.year, page.item.runtimeText, page.item.communityRating ? "★ " + page.item.communityRating : "",
                    page.item.officialRating, page.item.genres].filter(s => s).join("  ·  ")
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.highlight
         }
@@ -132,6 +135,7 @@ FocusScope {
                     anchors.centerIn: parent
                     text: button.modelData.title
                     font.family: Theme.fontFamily
+                    font.capitalization: Theme.caps
                     font.pixelSize: Theme.rowFont
                     font.bold: button.current
                     color: button.current ? Theme.highlightText : Theme.text
@@ -161,6 +165,7 @@ FocusScope {
                 return cast.length ? qsTr("Cast: %1").arg(cast.join(", ")) : ""
             }
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.smallFont
             color: Theme.dim
         }
@@ -174,6 +179,7 @@ FocusScope {
                 return crew.join(", ")
             }
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.smallFont
             color: Theme.dim
         }
@@ -182,6 +188,7 @@ FocusScope {
             text: [page.item.videoFlags, page.item.audioFlags, page.item.studios].filter(s => s).join("   |   ")
             elide: Text.ElideRight
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.smallFont
             font.bold: true
             color: Theme.dim

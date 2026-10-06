@@ -120,6 +120,7 @@ FocusScope {
         anchors.top: parent.top
         anchors.topMargin: Theme.px(36)
         font.family: Theme.fontFamily
+        font.capitalization: Theme.caps
         font.pixelSize: Theme.px(44)
         color: Theme.text
         style: Text.Outline
@@ -148,6 +149,7 @@ FocusScope {
             height: parent.height - Theme.px(120)
             focus: true
             staticMode: EmberSettings.staticMenu
+            fontFamily: Theme.menuFontFamily
             model: page.menuItems
             dimmed: page.submenuOpen
             onActivated: (index) => page.activate(page.menuItems[index])

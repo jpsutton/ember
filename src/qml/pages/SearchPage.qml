@@ -87,6 +87,7 @@ FocusScope {
             visible: list.count === 0
             text: results.loading ? qsTr("Searching…") : (results.searchTerm === "" ? qsTr("Type to search.") : qsTr("No matches."))
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.dim
         }

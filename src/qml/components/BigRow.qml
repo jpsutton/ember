@@ -42,6 +42,7 @@ Item {
             elide: Text.ElideRight
             text: row.title
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.rowFont
             font.bold: row.current
             color: row.current ? Theme.highlightText : Theme.text
@@ -52,6 +53,7 @@ Item {
             text: [row.item.year, row.item.runtimeText, row.item.communityRating ? "★ " + row.item.communityRating : "",
                    row.item.officialRating].filter(s => s).join("  ·  ")
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.smallFont
             color: row.current ? Theme.highlightText : Theme.dim
         }

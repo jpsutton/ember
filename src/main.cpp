@@ -3,6 +3,7 @@
 #include <KDBusService>
 #include <KWindowSystem>
 
+#include <QFontDatabase>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQuickWindow>
@@ -38,6 +39,11 @@ int main(int argc, char* argv[]) {
   ember::RemoteKeys remote_keys;
   remote_keys.setHoldMilliseconds(ember::EmberSettings::self()->holdMilliseconds());
   app.installEventFilter(&remote_keys);
+
+  // Amber's fonts: Ubuntu Condensed for text, Bebas Neue for the home menu.
+  for (const auto* font : {":/fonts/UbuntuCondensed-Regular.ttf", ":/fonts/BebasNeue-Regular.ttf"}) {
+    if (QFontDatabase::addApplicationFont(QString::fromLatin1(font)) < 0) qWarning("could not load font %s", font);
+  }
 
   ember::jellyfin::Session session(nullptr);
   ember::ImageNetworkFactory image_network;

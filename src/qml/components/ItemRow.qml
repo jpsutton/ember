@@ -34,6 +34,7 @@ Item {
         elide: Text.ElideRight
         text: row.title
         font.family: Theme.fontFamily
+        font.capitalization: Theme.caps
         font.pixelSize: row.compact ? Theme.px(25) : Theme.rowFont
         font.bold: row.current
         color: row.current ? Theme.highlightText : Theme.text
@@ -46,6 +47,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: row.label2
         font.family: Theme.fontFamily
+        font.capitalization: Theme.caps
         font.pixelSize: Theme.smallFont
         color: row.current ? Theme.highlightText : Theme.dim
     }

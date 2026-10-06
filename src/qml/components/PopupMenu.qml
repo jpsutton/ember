@@ -69,7 +69,7 @@ FocusScope {
             font.family: Theme.fontFamily
             font.pixelSize: Theme.px(30)
             font.bold: true
-            font.capitalization: Font.AllUppercase
+            font.capitalization: Theme.caps
             color: Theme.highlight
         }
 
@@ -116,6 +116,7 @@ FocusScope {
                     elide: Text.ElideRight
                     text: option.modelData.title
                     font.family: Theme.fontFamily
+                    font.capitalization: Theme.caps
                     font.pixelSize: Theme.rowFont
                     font.bold: option.current
                     color: option.current ? Theme.highlightText : (option.modelData.enabled === false ? Theme.faint : Theme.text)
@@ -127,6 +128,7 @@ FocusScope {
                     anchors.verticalCenter: parent.verticalCenter
                     text: option.modelData.detail || ""
                     font.family: Theme.fontFamily
+                    font.capitalization: Theme.caps
                     font.pixelSize: Theme.smallFont
                     color: option.current ? Theme.highlightText : Theme.dim
                 }

@@ -27,9 +27,8 @@ FocusScope {
 
         Text {
             text: "Ember"
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.px(96)
-            font.bold: true
+            font.family: Theme.menuFontFamily
+            font.pixelSize: Theme.px(120)
             color: Theme.highlight
         }
         Text {
@@ -43,6 +42,7 @@ FocusScope {
             visible: Session.discovering
             text: qsTr("Looking for servers…")
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.dim
         }
@@ -50,6 +50,7 @@ FocusScope {
             visible: Session.busy
             text: qsTr("Connecting…")
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.bodyFont
             color: Theme.dim
         }

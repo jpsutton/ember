@@ -76,3 +76,7 @@ GPL-3.0-only (see [LICENSE](LICENSE)). The video plane is adapted from
 [Plezy](https://github.com/edde746/plezy) (GPL-3.0) by way of
 [couchbox-iptv](https://github.com/jpsutton/couchbox-iptv), and the Jellyfin
 behaviour follows Plezy's Jellyfin backend.
+
+The bundled fonts in `fonts/` are the ones Kodi's Amber skin uses: Ubuntu
+Condensed (Ubuntu Font Licence 1.0, taken from Amber) and Bebas Neue (SIL
+Open Font License 1.1, from Google Fonts). Their licences are next to them.

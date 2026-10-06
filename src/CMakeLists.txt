@@ -59,6 +59,9 @@ target_link_libraries(ember_lib PUBLIC
 
 qt_add_executable(ember main.cpp)
 target_link_libraries(ember PRIVATE ember_lib ember_libplugin KF6::WindowSystem)
+# Amber's typefaces, so the look doesn't depend on installed fonts.
+qt_add_resources(ember "fonts" PREFIX "/fonts" BASE ../fonts FILES
+  ../fonts/UbuntuCondensed-Regular.ttf ../fonts/BebasNeue-Regular.ttf)
 
 install(TARGETS ember RUNTIME DESTINATION bin)
 install(FILES ../dist/org.couchbox.ember.desktop DESTINATION share/applications)

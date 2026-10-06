@@ -14,6 +14,7 @@ ListView {
     property int pinnedSlot: 3
     property real rowHeight: Theme.px(80)
     property int fontSize: Theme.menuFont
+    property string fontFamily: Theme.fontFamily
     property int horizontalAlignment: Text.AlignRight
     property bool dimmed: !activeFocus
     // The role or property holding the label.
@@ -54,11 +55,10 @@ ListView {
             verticalAlignment: Text.AlignVCenter
             horizontalAlignment: list.horizontalAlignment
             elide: Text.ElideRight
-            text: row.label.toUpperCase()
-            font.family: Theme.fontFamily
+            text: row.label
+            font.family: list.fontFamily
             font.pixelSize: list.fontSize
-            font.bold: row.current
-            font.letterSpacing: Theme.px(1)
+            font.capitalization: Theme.caps
             color: row.current ? (list.barHighlight ? Theme.highlightText : Theme.highlight) : Theme.dim
         }
     }

@@ -29,6 +29,7 @@ FocusScope {
         Text {
             text: qsTr("Libraries")
             font.family: Theme.fontFamily
+            font.capitalization: Theme.caps
             font.pixelSize: Theme.titleFont
             font.bold: true
             color: Theme.text
@@ -70,6 +71,7 @@ FocusScope {
                     anchors.verticalCenter: parent.verticalCenter
                     text: row.modelData.title
                     font.family: Theme.fontFamily
+                    font.capitalization: Theme.caps
                     font.pixelSize: Theme.rowFont
                     font.bold: row.current || row.modelData.id === ""
                     color: row.current ? Theme.highlightText : Theme.text

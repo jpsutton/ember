@@ -241,6 +241,7 @@ Window {
                     width: parent.width
                     wrapMode: Text.WordWrap
                     font.family: Theme.fontFamily
+                    font.capitalization: Theme.caps
                     font.pixelSize: Theme.rowFont
                     font.bold: true
                     color: Theme.highlight

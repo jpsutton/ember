@@ -38,12 +38,12 @@ transcode settings decide which codecs the server is asked to convert, and
 
 ## Building
 
-Needs Qt 6.8 or later (Base, Declarative), KDE Frameworks 6 (Config,
+Needs Qt 6.8 or later (Base, Declarative, WebSockets), KDE Frameworks 6 (Config,
 CoreAddons, DBusAddons, WindowSystem), QCoro 6, mpv (libmpv), Wayland
 client libraries and wayland-protocols. On Arch:
 
 ```sh
-pacman -S --needed cmake ninja extra-cmake-modules qt6-base qt6-declarative \
+pacman -S --needed cmake ninja extra-cmake-modules qt6-base qt6-declarative qt6-websockets \
   kconfig kcoreaddons kdbusaddons kwindowsystem qcoro mpv wayland wayland-protocols
 cmake -S . -B build -G Ninja
 cmake --build build

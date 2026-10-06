@@ -22,8 +22,8 @@ newer couchbox.
 | M2 home | Done: blade with pinned or static highlight, submenus, random fanart per library, clock, item count. No shelves (by decision). |
 | M3 lists | Done: Amber List view, paging, drill-down show → season → episodes (one-season shows skip the season list), position kept on Back. |
 | M4 playback | Done: direct play and HLS transcode, resume, progress reports, audio/subtitle menus, chapters, skip intro (chapter fallback), Up Next with auto-play, MPRIS, screen-saver inhibit. couchbox packaging prepared (couchbox branch `feat/ember`, not pushed). |
-| M5 Amber parity | Mostly done: side blade (sort, order, hide watched), A–Z strip, Channel ± paging, info page with cast, context menu, genres, years, collections, search. Websocket refresh not done. |
-| M6 polish | Partly: trickplay preview on the seek bar (written, untested: the dev server has no trickplay images), on-screen keyboard, search. Not done: list variants, home menu editing, GLib-free plane (moot: the Qt port never used GLib), threaded render loop trial. |
+| M5 Amber parity | Done: side blade (sort, order, hide watched), A–Z strip, Channel ± paging, info page with cast, context menu, genres, years, collections, search, and the server's event stream (rows update when watched state changes elsewhere; lists reload after library changes). |
+| M6 polish | Partly: trickplay preview on the seek bar (tested), on-screen keyboard, search. Not done: list variants, home menu editing, threaded render loop trial. (The GLib-free plane item is moot: the Qt port never used GLib.) |
 
 ## Goal
 
@@ -536,6 +536,14 @@ the server, and continue to the next one, with Kodi left alone.
   and the user's own server on the LAN.
 - **QML gotcha**: the QML compiler drops a bare read like `items.revision`
   in a binding, and the dependency with it; use the value in the expression.
+- **QML gotcha**: a `QML_SINGLETON` with a default constructor gets
+  constructed again by QML even when it has a static `create()`; Session's
+  constructor takes a required argument so QML has to use `create()`.
+- **The HEVC 10-bit limit works**: with HEVC allowed and the
+  `VideoBitDepth <= 8` codec profile (the NUC's case), Jellyfin 12.2
+  transcodes the 10-bit film and direct-plays 8-bit and H.264. On the BRIX
+  (all HEVC transcoded) the 10-bit film plays through the server's H.264
+  transcode with VA-API decode.
 
 ## Not yet verified
 
@@ -545,9 +553,9 @@ the server, and continue to the next one, with Kodi left alone.
 - Pause on minimize through couchbox-focus (not in 0.9.0); its MPRIS Pause
   call itself works.
 - A real library on a real server (only the dev server has been used).
-- Trickplay thumbnails (the dev server has no trickplay images), media
-  segments (needs the Intro Skipper plugin), burned-in bitmap subtitles
-  during a transcode, HEVC 10-bit transcode on the NUC.
+- Media segments (needs the Intro Skipper plugin; the chapter-name
+  fallback is tested), burned-in bitmap subtitles during a transcode,
+  playback on the NUC itself.
 - Hiding and re-showing the window (the plane is rebuilt on show; only
   minimize was exercised).
 

@@ -26,8 +26,11 @@ Q_LOGGING_CATEGORY(lcPlayback, "ember.playback")
 namespace ember {
 namespace {
 
-// Live: how far short of the live edge skips stop.
-constexpr double kLiveMarginSeconds = 3.0;
+// Live: how far behind the live edge playback starts and skips stop. The
+// server hands out a live stream in ~3 s HLS segments as they're made, so at
+// the edge mpv runs dry before each new one and stalls; this keeps one or two
+// segments in hand.
+constexpr double kLiveMarginSeconds = 5.0;
 
 using jellyfin::ApiClient;
 using jellyfin::Reply;
@@ -494,6 +497,15 @@ void Playback::loadStream(double start_seconds) {
     // A cache to pause and skip back in (couchbox-iptv's sizes).
     options << QStringLiteral("demuxer-seekable-cache=yes") << QStringLiteral("demuxer-max-bytes=256MiB")
             << QStringLiteral("demuxer-max-back-bytes=128MiB") << QStringLiteral("demuxer-readahead-secs=10");
+    // Start kLiveMarginSeconds behind the edge, and refill that much after
+    // running dry.
+    options << QStringLiteral("cache-pause-initial=yes")
+            << QStringLiteral("cache-pause-wait=%1").arg(kLiveMarginSeconds, 0, 'f', 0);
+    // display-resample plays 29.97 fps at 30 on a 60 Hz screen, 0.1% fast,
+    // which on a live source eats the margin (3.6 s an hour). display-vdrop
+    // keeps frames on the refresh too, but holds the broadcast's pace by
+    // showing a frame one refresh longer every ~33 s.
+    options << QStringLiteral("video-sync=display-vdrop");
   }
   options << QStringLiteral("force-media-title=%1").arg(QString(title()).remove(QLatin1Char(',')));
   command << options.join(QLatin1Char(','));

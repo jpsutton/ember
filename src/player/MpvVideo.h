@@ -70,6 +70,7 @@ class MpvVideo : public QQuickItem {
   void render(bool force);
   void scheduleRenderRetry();
   void startStats();
+  void noteFrameCallback();
   void applyDisplayFps(QScreen* screen);
   void setError(const QString& error);
   void whenReady(std::function<void()> call);

@@ -41,6 +41,13 @@ struct PresentStats {
   std::atomic<qint64> render_sum{0}, render_max{0};  // mpv render
   std::atomic<qint64> swap_sum{0}, swap_max{0};      // eglSwapBuffers
   std::atomic<int> qt_frames{0};                     // the UI's own frames
+  // Gaps over 25 ms between frame callbacks during steady playback, as
+  // received and as the compositor stamped them.
+  int received_gaps = 0, compositor_gaps = 0;
+  qint64 received_gap_max = 0, compositor_gap_max = 0;
+  qint64 last_received = 0;
+  uint32_t last_compositor = 0;
+  qint64 first_ask = 0;  // mpv's first request for a frame since the last callback
 };
 PresentStats g_stats;
 
@@ -159,9 +166,15 @@ void MpvVideo::start() {
   core_ = std::move(core);
   plane_ = std::move(plane);
   executor_ = std::make_unique<PlaneRenderExecutor>();
-  plane_->SetFrameCallback([this]() { render(false); });
+  plane_->SetFrameCallback([this]() {
+    if (stats_timer_) noteFrameCallback();
+    render(false);
+  });
   plane_->SetScreenEnteredCallback([this](QScreen* screen) { applyDisplayFps(screen); });
-  core_->SetRedrawCallback([this]() { render(false); });
+  core_->SetRedrawCallback([this]() {
+    if (stats_timer_ && g_stats.first_ask == 0) g_stats.first_ask = NowUs();
+    render(false);
+  });
   if (lcStats().isInfoEnabled()) startStats();
   core_->SetEventCallback([this](const QString& name, const QVariantMap& data) {
     if (name == QLatin1String("log-message")) {
@@ -329,6 +342,37 @@ void MpvVideo::render(bool force) {
   }
 }
 
+void MpvVideo::noteFrameCallback() {
+  const qint64 now = NowUs();
+  const uint32_t stamp = plane_->last_frame_time_ms();
+  const qint64 received = now - g_stats.last_received;
+  const qint64 stamped = qint64(stamp - g_stats.last_compositor) * 1000;
+  // Over half a second apart is a pause in rendering, not a hiccup.
+  if (g_stats.last_received != 0 && received < 500000) {
+    if (received > 40000) {
+      // A gap in the video. If mpv asked for a frame early in it, the frame
+      // waited on the compositor; asked late (or never), mpv had none (on
+      // live TV: the stream ran dry). After a pause the compositor stamps
+      // the callback with its last refresh, so a long wait since the stamp
+      // alone doesn't mean the GUI thread was busy.
+      const qint64 waited = now / 1000 - qint64(stamp);
+      const QString asked = g_stats.first_ask == 0
+                                ? QStringLiteral("mpv asked for no frame in it")
+                                : QStringLiteral("mpv asked for a frame %1 ms in")
+                                      .arg((g_stats.first_ask - g_stats.last_received) / 1000);
+      qCInfo(lcStats, "frame callback gap %.0f ms (compositor stamps %.0f ms apart, callback %lld ms after its stamp); %s",
+             received / 1000.0, stamped / 1000.0, static_cast<long long>(waited), qPrintable(asked));
+    }
+    if (received > 25000) ++g_stats.received_gaps;
+    g_stats.received_gap_max = std::max(g_stats.received_gap_max, received);
+    if (stamped > 25000) ++g_stats.compositor_gaps;
+    g_stats.compositor_gap_max = std::max(g_stats.compositor_gap_max, stamped);
+  }
+  g_stats.last_received = now;
+  g_stats.last_compositor = stamp;
+  g_stats.first_ask = 0;
+}
+
 void MpvVideo::startStats() {
   stats_timer_ = std::make_unique<QTimer>();
   stats_timer_->setInterval(5000);
@@ -337,11 +381,16 @@ void MpvVideo::startStats() {
     if (!core_) return;
     const int n = g_stats.presents.exchange(0);
     if (n > 0) {
-      qCInfo(lcStats, "presents %.1f/s, ui frames %.1f/s, ms avg/max: wait %.1f/%.1f render %.1f/%.1f swap %.1f/%.1f",
+      qCInfo(lcStats,
+             "presents %.1f/s, ui frames %.1f/s, ms avg/max: wait %.1f/%.1f render %.1f/%.1f swap %.1f/%.1f, "
+             "callback gaps >25 ms: received %d (max %.0f ms), compositor %d (max %.0f ms)",
              n / 5.0, g_stats.qt_frames.exchange(0) / 5.0, g_stats.wait_sum.exchange(0) / 1000.0 / n,
              g_stats.wait_max.exchange(0) / 1000.0, g_stats.render_sum.exchange(0) / 1000.0 / n,
              g_stats.render_max.exchange(0) / 1000.0, g_stats.swap_sum.exchange(0) / 1000.0 / n,
-             g_stats.swap_max.exchange(0) / 1000.0);
+             g_stats.swap_max.exchange(0) / 1000.0, g_stats.received_gaps, g_stats.received_gap_max / 1000.0,
+             g_stats.compositor_gaps, g_stats.compositor_gap_max / 1000.0);
+      g_stats.received_gaps = g_stats.compositor_gaps = 0;
+      g_stats.received_gap_max = g_stats.compositor_gap_max = 0;
     }
     core_->CommandAsync(
         {"expand-text",

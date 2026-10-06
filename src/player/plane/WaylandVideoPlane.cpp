@@ -394,8 +394,9 @@ bool WaylandVideoPlane::CompletePresent(bool swapped) {
   return true;
 }
 
-void WaylandVideoPlane::HandleFrameDone(void* data, wl_callback* callback, uint32_t) {
+void WaylandVideoPlane::HandleFrameDone(void* data, wl_callback* callback, uint32_t time) {
   auto* self = static_cast<WaylandVideoPlane*>(data);
+  self->last_frame_time_ms_ = time;
   // Every listener here assumes Qt dispatches the default queue on the GUI
   // thread; say so loudly if that ever changes.
   static bool warned = false;

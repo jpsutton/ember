@@ -29,7 +29,9 @@ Environment variables:
 - `QT_LOGGING_RULES="ember.video.stats=true"` logs frame timing every 5
   seconds while video plays: pictures handed to the compositor per second,
   how long drawing and swapping took, and mpv's dropped, late and mistimed
-  frames with the refresh rate it measures.
+  frames with the refresh rate it measures. Each gap over 40 ms in the video
+  gets a line of its own saying whether mpv had a frame waiting (the
+  compositor held it up) or had none (on live TV, the stream ran dry).
 
 ## Files Ember keeps
 

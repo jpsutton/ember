@@ -85,6 +85,8 @@ class WaylandVideoPlane {
   // True while a committed frame awaits the compositor's acknowledgement.
   // Rendering meanwhile would queue frames an occluded surface never takes.
   bool frame_pending() const { return frame_pending_; }
+  // The compositor's timestamp (ms) on the last frame callback.
+  uint32_t last_frame_time_ms() const { return last_frame_time_ms_; }
   bool first_frame_presented() const { return first_frame_presented_; }
 
   // Called when the compositor acknowledges a frame (or the watchdog gives
@@ -155,6 +157,7 @@ class WaylandVideoPlane {
   std::unique_ptr<QTimer> stalled_represent_timer_;
 
   std::function<void()> on_frame_;
+  uint32_t last_frame_time_ms_ = 0;
   std::function<void(QScreen*)> on_screen_entered_;
 };
 

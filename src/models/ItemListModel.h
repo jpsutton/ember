@@ -106,6 +106,9 @@ class ItemListModel : public QAbstractListModel {
   // Finds the first row whose sort name starts at or after |letter| ("#" for
   // digits and symbols), loads pages up to it, then emits letterFound.
   Q_INVOKABLE void findLetter(const QString& letter);
+  // Loads the rest of a paged list, then emits lastRowLoaded: wrapping from
+  // the top goes to the real end, not the last row loaded so far.
+  Q_INVOKABLE void loadToEnd();
   // The letters present in the list, for the A-Z strip.
   Q_INVOKABLE QStringList letters() const;
 
@@ -115,6 +118,7 @@ class ItemListModel : public QAbstractListModel {
   void loadingChanged();
   void errorStringChanged();
   void letterFound(int index);
+  void lastRowLoaded(int index);
   void revisionChanged();
   void staleChanged();
   // The first page has arrived after a reload.
@@ -130,7 +134,8 @@ class ItemListModel : public QAbstractListModel {
   }
 
   void scheduleReload();
-  QCoro::Task<> fetchPage(quint64 generation, int start);
+  QCoro::Task<> fetchPage(quint64 generation, int start, int limit = 0);
+  QCoro::Task<> loadToEndTask(quint64 generation);
   QCoro::Task<> refreshItemsTask(QStringList ids);
   QCoro::Task<> setPlayedTask(QString id, bool played);
   QCoro::Task<> findLetterTask(QString letter, quint64 generation);

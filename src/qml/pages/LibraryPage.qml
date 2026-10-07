@@ -61,6 +61,7 @@ FocusScope {
             }
         }
         onLetterFound: (index) => page.view.currentIndex = index
+        onLastRowLoaded: (index) => page.view.currentIndex = index
     }
 
     Component.onCompleted: {
@@ -255,7 +256,7 @@ FocusScope {
     DetailsPane {
         x: Theme.px(70)
         y: page.viewType === "low" ? parent.height - Theme.px(770) : Theme.px(56)
-        width: Theme.px(1150)
+        width: panel.x - x - Theme.px(70)
         height: parent.height - y - Theme.px(54)
         item: page.current
         visible: !page.simple && page.view.count > 0
@@ -263,7 +264,7 @@ FocusScope {
 
     Rectangle {
         id: panel
-        x: page.simple ? 0 : Theme.px(1290)
+        x: page.simple ? 0 : Theme.px(1130)
         width: parent.width - x
         // Low List keeps the panel to the bottom part of the screen.
         y: page.viewType === "low" ? parent.height - height : 0
@@ -349,7 +350,16 @@ FocusScope {
 
             Keys.onPressed: (event) => {
                 if (page.handleKey(event, page.pageStep)) return
-                if (event.key === Qt.Key_Left) {
+                // A list still loading wraps to its real ends: Up at the top
+                // loads the rest and goes to the last row, and Down at the
+                // last row loaded waits for the next page.
+                const partial = items.count < items.totalCount
+                if (event.key === Qt.Key_Up && currentIndex === 0 && partial) {
+                    items.loadToEnd()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Down && currentIndex === count - 1 && partial) {
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Left) {
                     page.viewOptions()
                     event.accepted = true
                 } else if (event.key === Qt.Key_Right) {

@@ -4,7 +4,8 @@ import Ember
 
 // Watched state, as in Amber: a check for watched, a half-filled circle for
 // in progress, an empty circle for unwatched. Folders show a count of
-// unwatched episodes instead, or nothing.
+// unwatched episodes instead, or nothing. The check is cut out of its disc,
+// so it shows the row behind it, highlighted or not.
 Item {
     id: root
 
@@ -50,6 +51,7 @@ Item {
         onPaint: {
             const ctx = getContext("2d")
             ctx.reset()
+            ctx.clearRect(0, 0, width, height)
             const r = width / 2 - Math.max(1, Theme.px(2))
             const c = width / 2
             ctx.lineWidth = Math.max(1, Theme.px(2.5))
@@ -59,7 +61,7 @@ Item {
             ctx.arc(c, c, r, 0, 2 * Math.PI)
             if (status === "watched") {
                 ctx.fill()
-                ctx.strokeStyle = Theme.background
+                ctx.globalCompositeOperation = "destination-out"
                 ctx.lineWidth = Math.max(1, Theme.px(3.5))
                 ctx.beginPath()
                 ctx.moveTo(c - r * 0.45, c + r * 0.02)

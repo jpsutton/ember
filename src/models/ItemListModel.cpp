@@ -158,7 +158,7 @@ void ItemListModel::appendRows(const QJsonArray& items) {
   emit countChanged();
 }
 
-QCoro::Task<> ItemListModel::fetchPage(quint64 generation, int start) {
+QCoro::Task<> ItemListModel::fetchPage(quint64 generation, int start, int limit) {
   QPointer<ItemListModel> self(this);
   Session* session = Session::instance();
   ApiClient* api = session->api();
@@ -174,7 +174,7 @@ QCoro::Task<> ItemListModel::fetchPage(quint64 generation, int start) {
   const bool paged = pagedMode();
   if (paged) {
     query.addQueryItem(QStringLiteral("StartIndex"), QString::number(start));
-    query.addQueryItem(QStringLiteral("Limit"), QString::number(kPageSize));
+    query.addQueryItem(QStringLiteral("Limit"), QString::number(limit > 0 ? limit : kPageSize));
     query.addQueryItem(QStringLiteral("EnableTotalRecordCount"), QStringLiteral("true"));
   }
   auto add_sort = [&]() {
@@ -371,6 +371,24 @@ QStringList ItemListModel::letters() const {
 }
 
 void ItemListModel::findLetter(const QString& letter) { findLetterTask(letter, generation_); }
+
+void ItemListModel::loadToEnd() { loadToEndTask(generation_); }
+
+QCoro::Task<> ItemListModel::loadToEndTask(quint64 generation) {
+  QPointer<ItemListModel> self(this);
+  while (rows_.size() < total_ && !exhausted_ && pagedMode()) {
+    if (loading_) {
+      co_await QCoro::sleepFor(std::chrono::milliseconds(50));
+    } else if (mode_ == QLatin1String("aired")) {
+      co_await fetchPage(generation, aired_fetched_);
+    } else {
+      // The rest in one request.
+      co_await fetchPage(generation, int(rows_.size()), std::max(kPageSize, total_ - int(rows_.size())));
+    }
+    if (!self || generation != generation_) co_return;
+  }
+  if (!rows_.isEmpty()) emit lastRowLoaded(int(rows_.size()) - 1);
+}
 
 QCoro::Task<> ItemListModel::findLetterTask(QString letter, quint64 generation) {
   QPointer<ItemListModel> self(this);

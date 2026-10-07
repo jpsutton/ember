@@ -242,6 +242,11 @@ bool MpvCore::Initialize() {
   mpv_set_option_string(mpv_, "terminal", "no");
   mpv_set_option_string(mpv_, "vo", "libmpv");
   mpv_set_option_string(mpv_, "hwdec", "auto-safe");
+  // mpv's default list, plus MPEG-2: what US broadcast TV is (HDHomeRun
+  // tuners pass it through untouched). Decoded in software, 1080i MPEG-2 also
+  // drags deinterlacing onto the CPU, 1.5 cores of a Bay Trail; on VA-API
+  // both stay on the GPU (vavpp's motion-adaptive deinterlacer).
+  mpv_set_option_string(mpv_, "hwdec-codecs", "h264,vc1,hevc,vp8,vp9,av1,prores,ffv1,mpeg2video");
   // Info level keeps mpv's hwdec probe and "Using software decoding" lines,
   // the only evidence a silent software fallback leaves.
   mpv_request_log_messages(mpv_, "info");

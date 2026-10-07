@@ -26,11 +26,8 @@ Q_LOGGING_CATEGORY(lcPlayback, "ember.playback")
 namespace ember {
 namespace {
 
-// Live: how far behind the live edge playback starts and skips stop. The
-// server hands out a live stream in ~3 s HLS segments as they're made, so at
-// the edge mpv runs dry before each new one and stalls; this keeps one or two
-// segments in hand.
-constexpr double kLiveMarginSeconds = 5.0;
+// Live: how far short of the live edge skips stop.
+constexpr double kLiveMarginSeconds = 3.0;
 
 using jellyfin::ApiClient;
 using jellyfin::Reply;
@@ -55,6 +52,25 @@ QString AbsoluteUrl(const ApiClient* api, QString relative) {
            api->token();
   }
   return url;
+}
+
+// Whether a live source's codecs are ones the device profile direct-plays.
+bool CanDirectStreamLive(const QJsonObject& source, const QJsonObject& profile) {
+  const QStringList video_codecs = profile.value(QStringLiteral("DirectPlayProfiles"))
+                                       .toArray()
+                                       .first()
+                                       .toObject()
+                                       .value(QStringLiteral("VideoCodec"))
+                                       .toString()
+                                       .split(QLatin1Char(','));
+  for (const QJsonValue& value : source.value(QStringLiteral("MediaStreams")).toArray()) {
+    const QJsonObject stream = value.toObject();
+    const QString type = Str(stream, "Type");
+    const QString codec = Str(stream, "Codec").toLower();
+    if (type == QLatin1String("Video") && !codec.isEmpty() && !video_codecs.contains(codec)) return false;
+    if (type == QLatin1String("Audio") && codec == QLatin1String("ac4")) return false;
+  }
+  return true;
 }
 
 }  // namespace
@@ -399,7 +415,13 @@ QCoro::Task<bool> Playback::negotiate(double start_seconds, quint64 generation) 
   if (stream.live_stream_id.isEmpty() && !transcoding_url.isEmpty()) {
     stream.live_stream_id = QUrlQuery(QUrl(transcoding_url)).queryItemValue(QStringLiteral("LiveStreamId"));
   }
-  if (source.value(QStringLiteral("SupportsDirectPlay")).toBool() || transcoding_url.isEmpty()) {
+  // Live TV: the tuner's stream as it arrives, rather than the HLS the server
+  // offers. HLS comes in ~3 s segments as they're made, and at the live edge
+  // mpv ran dry before each one and stalled for 80-250 ms every few seconds;
+  // the continuous stream doesn't, and runs closer to live. Only when Ember
+  // can decode it (no AC-4 from ATSC 3.0, for one).
+  const bool live_direct = !stream.live_stream_id.isEmpty() && CanDirectStreamLive(source, deviceProfile());
+  if (live_direct || source.value(QStringLiteral("SupportsDirectPlay")).toBool() || transcoding_url.isEmpty()) {
     QUrlQuery stream_query;
     stream_query.addQueryItem(QStringLiteral("Static"), QStringLiteral("true"));
     stream_query.addQueryItem(QStringLiteral("MediaSourceId"), stream.media_source_id);
@@ -407,7 +429,7 @@ QCoro::Task<bool> Playback::negotiate(double start_seconds, quint64 generation) 
     if (!stream.live_stream_id.isEmpty()) stream_query.addQueryItem(QStringLiteral("LiveStreamId"), stream.live_stream_id);
     stream_query.addQueryItem(QStringLiteral("DeviceId"), api->deviceId());
     stream.url = api->authenticatedUrl(QStringLiteral("/Videos/%1/stream").arg(item_id), stream_query).toString();
-    stream.method = QStringLiteral("DirectPlay");
+    stream.method = live_direct ? QStringLiteral("DirectStream") : QStringLiteral("DirectPlay");
   } else {
     stream.url = AbsoluteUrl(api, transcoding_url);
     stream.method = source.value(QStringLiteral("SupportsDirectStream")).toBool() &&
@@ -497,14 +519,10 @@ void Playback::loadStream(double start_seconds) {
     // A cache to pause and skip back in (couchbox-iptv's sizes).
     options << QStringLiteral("demuxer-seekable-cache=yes") << QStringLiteral("demuxer-max-bytes=256MiB")
             << QStringLiteral("demuxer-max-back-bytes=128MiB") << QStringLiteral("demuxer-readahead-secs=10");
-    // Start kLiveMarginSeconds behind the edge, and refill that much after
-    // running dry.
-    options << QStringLiteral("cache-pause-initial=yes")
-            << QStringLiteral("cache-pause-wait=%1").arg(kLiveMarginSeconds, 0, 'f', 0);
     // display-resample plays 29.97 fps at 30 on a 60 Hz screen, 0.1% fast,
-    // which on a live source eats the margin (3.6 s an hour). display-vdrop
-    // keeps frames on the refresh too, but holds the broadcast's pace by
-    // showing a frame one refresh longer every ~33 s.
+    // which on a live source catches up with the broadcast and runs dry.
+    // display-vdrop keeps frames on the refresh too, but holds the
+    // broadcast's pace by showing a frame one refresh longer every ~33 s.
     options << QStringLiteral("video-sync=display-vdrop");
   }
   options << QStringLiteral("force-media-title=%1").arg(QString(title()).remove(QLatin1Char(',')));

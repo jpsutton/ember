@@ -27,6 +27,7 @@ FocusScope {
     property bool osdVisible: true
     // The Up Next card was dismissed for this item.
     property bool nextDismissed: false
+    property bool introDismissed: false
     property real nextCountdown: 0
     // Skipping with Left/Right (as Plezy does): each press seeks at once,
     // and a readout at that side of the picture adds up a run of presses in
@@ -38,6 +39,12 @@ FocusScope {
 
     readonly property bool inIntro: playback.introStart >= 0 && playback.position >= playback.introStart
                                     && playback.position < playback.introEnd - 1
+    readonly property bool showSkipIntro: inIntro && !EmberSettings.autoSkipIntro && !introDismissed
+
+    // Height of the black bar below a letterboxed picture (mpv fits the video
+    // inside the full-screen item); 0 when the picture fills the screen.
+    readonly property real letterboxBottom: playback.videoAspect > 0
+        ? Math.max(0, (height - width / playback.videoAspect) / 2) : 0
     readonly property bool nearEnd: playback.duration > 0 && (playback.creditsStart > 0
                                     ? playback.position >= playback.creditsStart
                                     : playback.duration - playback.position <= 30)
@@ -56,7 +63,7 @@ FocusScope {
                 page.close()
             }
         }
-        onItemChanged: page.nextDismissed = false
+        onItemChanged: { page.nextDismissed = false; page.introDismissed = false }
         onSeeked: mpris.notifySeeked()
         // Show the panel briefly when playback starts.
         onStateChanged: if (state === Playback.Playing) page.showOsd()
@@ -64,6 +71,7 @@ FocusScope {
 
     function startNext() {
         nextDismissed = false
+        introDismissed = false
         nextTimer.stop()
         playback.playNext()
         showOsd()
@@ -295,9 +303,13 @@ FocusScope {
     Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: Theme.px(80)
-        anchors.bottom: osd.top
-        anchors.bottomMargin: Theme.px(30)
-        visible: page.inIntro && !EmberSettings.autoSkipIntro
+        // In the letterbox bar under the picture when it has room, else above
+        // the on-screen display.
+        readonly property bool inBar: page.letterboxBottom >= height + Theme.px(30)
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: inBar ? (page.letterboxBottom - height) / 2
+                                    : (osd.visible ? osd.height + Theme.px(30) : Theme.px(60))
+        visible: page.showSkipIntro
         width: skipText.implicitWidth + Theme.px(60)
         height: Theme.px(70)
         radius: Theme.px(8)
@@ -305,7 +317,7 @@ FocusScope {
         Text {
             id: skipText
             anchors.centerIn: parent
-            text: qsTr("OK: Skip intro")
+            text: qsTr("OK: Skip intro  ·  Back: Dismiss")
             font.family: Theme.fontFamily
             font.pixelSize: Theme.rowFont
             font.bold: true
@@ -484,6 +496,7 @@ FocusScope {
         switch (event.key) {
         case Qt.Key_Back:
             if (page.showNext) { page.nextDismissed = true; break }
+            if (page.showSkipIntro) { page.introDismissed = true; break }
             if (playback.state === Playback.Failed || playback.state === Playback.Idle) { page.close(); break }
             playback.stop()
             break
@@ -493,7 +506,7 @@ FocusScope {
             break
         case Qt.Key_Return:
             if (page.showNext) page.startNext()
-            else if (page.inIntro && !EmberSettings.autoSkipIntro) playback.seekTo(playback.introEnd)
+            else if (page.showSkipIntro) playback.seekTo(playback.introEnd)
             else { playback.togglePause(); page.showOsd() }
             break
         case Qt.Key_MediaTogglePlayPause:

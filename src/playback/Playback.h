@@ -35,6 +35,8 @@ class Playback : public QObject {
   Q_PROPERTY(QString subtitle READ subtitle NOTIFY itemChanged)
   Q_PROPERTY(double position READ position NOTIFY positionChanged)
   Q_PROPERTY(double duration READ duration NOTIFY durationChanged)
+  // Width over height of the picture as shown (0 until known).
+  Q_PROPERTY(double videoAspect READ videoAspect NOTIFY videoAspectChanged)
   Q_PROPERTY(bool paused READ paused NOTIFY pausedChanged)
   Q_PROPERTY(bool buffering READ buffering NOTIFY bufferingChanged)
   // True once the first frame is up; until then QML keeps the screen black.
@@ -82,6 +84,7 @@ class Playback : public QObject {
   QString subtitle() const;
   double position() const { return position_; }
   double duration() const { return duration_; }
+  double videoAspect() const { return video_aspect_; }
   bool paused() const { return paused_; }
   bool buffering() const { return buffering_; }
   bool videoShown() const { return video_shown_; }
@@ -130,6 +133,7 @@ class Playback : public QObject {
   void itemChanged();
   void positionChanged();
   void durationChanged();
+  void videoAspectChanged();
   void pausedChanged();
   void bufferingChanged();
   void videoShownChanged();
@@ -189,6 +193,7 @@ class Playback : public QObject {
   Stream stream_;
   double position_ = 0;
   double duration_ = 0;
+  double video_aspect_ = 0;
   double start_seconds_ = 0;
   bool paused_ = false;
   bool buffering_ = false;

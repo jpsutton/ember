@@ -93,7 +93,9 @@ void Playback::setVideo(MpvVideo* video) {
   if (video_) {
     connect(video_, &MpvVideo::mpvEvent, this, &Playback::onMpvEvent);
     connect(video_, &MpvVideo::mpvPropertyChanged, this, &Playback::onMpvProperty);
-    for (const char* name : {"time-pos", "duration"}) video_->observe(QString::fromLatin1(name), QStringLiteral("double"));
+    for (const char* name : {"time-pos", "duration", "video-params/aspect"}) {
+      video_->observe(QString::fromLatin1(name), QStringLiteral("double"));
+    }
     for (const char* name : {"pause", "paused-for-cache", "eof-reached", "deinterlace-active"}) {
       video_->observe(QString::fromLatin1(name), QStringLiteral("flag"));
     }
@@ -274,6 +276,10 @@ QCoro::Task<> Playback::playTask(QString item_id, bool from_start, double start_
   duration_ = 0;
   emit positionChanged();
   emit durationChanged();
+  if (video_aspect_ != 0) {
+    video_aspect_ = 0;
+    emit videoAspectChanged();
+  }
   intro_start_ = intro_end_ = credits_start_ = -1;
   emit segmentsChanged();
   next_item_.clear();
@@ -793,6 +799,8 @@ QCoro::Task<> Playback::loadSegments(QString item_id, quint64 generation) {
     }
     if (credits_start_ < 0 && credits_name.match(name).hasMatch()) credits_start_ = start;
   }
+  qCInfo(lcPlayback, "segments: intro %.1f-%.1f, credits from %.1f (%s)", intro_start_, intro_end_, credits_start_,
+         reply.ok() ? "server" : "request failed");
   emit segmentsChanged();
 }
 
@@ -872,6 +880,11 @@ void Playback::onMpvProperty(const QString& name, const QVariant& value) {
   } else if (name == QLatin1String("duration")) {
     duration_ = value.isValid() ? value.toDouble() : 0;
     emit durationChanged();
+  } else if (name == QLatin1String("video-params/aspect")) {
+    const double aspect = value.isValid() ? value.toDouble() : 0;
+    if (qFuzzyCompare(aspect + 1, video_aspect_ + 1)) return;
+    video_aspect_ = aspect;
+    emit videoAspectChanged();
   } else if (name == QLatin1String("deinterlace-active")) {
     if (value.toBool()) qCInfo(lcPlayback, "deinterlacing");
   } else if (name == QLatin1String("pause")) {

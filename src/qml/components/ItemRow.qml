@@ -58,6 +58,5 @@ Item {
         status: row.status
         unplayedCount: row.unplayedCount
         progress: row.progress
-        color: row.current ? Theme.highlightText : Theme.dim
     }
 }

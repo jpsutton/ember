@@ -4,8 +4,9 @@ import Ember
 
 // Watched state, as in Amber: a check for watched, a half-filled circle for
 // in progress, an empty circle for unwatched. Folders show a count of
-// unwatched episodes instead, or nothing. The check is cut out of its disc,
-// so it shows the row behind it, highlighted or not.
+// unwatched episodes instead, or nothing. The icon looks the same on every row,
+// highlighted or not: the check and the inside of the circles are drawn in a
+// solid version of the list panel's colour instead of showing the row.
 Item {
     id: root
 
@@ -13,6 +14,7 @@ Item {
     property int unplayedCount: 0
     property real progress: 0
     property color color: Theme.dim
+    readonly property color well: Qt.rgba(Theme.panel.r, Theme.panel.g, Theme.panel.b, 1)
 
     implicitWidth: Theme.px(34)
     implicitHeight: Theme.px(34)
@@ -23,7 +25,7 @@ Item {
         height: Theme.px(34)
         radius: height / 2
         visible: root.status === "" && root.unplayedCount > 0
-        color: "transparent"
+        color: root.well
         border.color: root.color
         border.width: Math.max(1, Theme.px(2))
         Text {
@@ -44,6 +46,7 @@ Item {
         property string status: root.status
         property real progress: root.progress
         property color color: root.color
+        property color well: root.well
         onStatusChanged: requestPaint()
         onProgressChanged: requestPaint()
         onColorChanged: requestPaint()
@@ -61,7 +64,7 @@ Item {
             ctx.arc(c, c, r, 0, 2 * Math.PI)
             if (status === "watched") {
                 ctx.fill()
-                ctx.globalCompositeOperation = "destination-out"
+                ctx.strokeStyle = well
                 ctx.lineWidth = Math.max(1, Theme.px(3.5))
                 ctx.beginPath()
                 ctx.moveTo(c - r * 0.45, c + r * 0.02)
@@ -69,8 +72,12 @@ Item {
                 ctx.lineTo(c + r * 0.5, c - r * 0.35)
                 ctx.stroke()
             } else {
+                ctx.fillStyle = well
+                ctx.fill()
+                ctx.strokeStyle = color
                 ctx.stroke()
                 if (status === "inProgress") {
+                    ctx.fillStyle = color
                     ctx.beginPath()
                     ctx.moveTo(c, c)
                     const p = Math.max(0.12, Math.min(0.95, progress / 100))

@@ -123,6 +123,7 @@ void ItemListModel::reload() {
   aired_pending_.clear();
   aired_fetched_ = 0;
   total_ = 0;
+  unfiltered_count_ = 0;
   exhausted_ = false;
   endResetModel();
   if (stale_) {
@@ -278,7 +279,17 @@ QCoro::Task<> ItemListModel::fetchPage(quint64 generation, int start, int limit)
     // Nothing could be placed yet: read on rather than wait for the view.
     if (releaseAired(cutoff) == 0 && !exhausted_) fetchPage(generation, aired_fetched_);
   } else {
-    const QJsonArray items = reply.json.isArray() ? reply.array() : reply.object().value(QStringLiteral("Items")).toArray();
+    QJsonArray items = reply.json.isArray() ? reply.array() : reply.object().value(QStringLiteral("Items")).toArray();
+    unfiltered_count_ = int(items.size());
+    // The server's seasons and episodes endpoints have no played filter.
+    if (hide_watched_ && (mode_ == QLatin1String("seasons") || mode_ == QLatin1String("episodes"))) {
+      QJsonArray unwatched;
+      for (const QJsonValue& value : items) {
+        const QJsonObject user = value.toObject().value(QStringLiteral("UserData")).toObject();
+        if (!user.value(QStringLiteral("Played")).toBool()) unwatched.append(value);
+      }
+      items = unwatched;
+    }
     total_ = paged ? reply.object().value(QStringLiteral("TotalRecordCount")).toInt(int(rows_.size() + items.size()))
                    : int(items.size());
     if (!paged || items.isEmpty()) exhausted_ = true;

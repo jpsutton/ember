@@ -20,6 +20,7 @@
 #include "../player/MpvVideo.h"
 #include "EmberSettings.h"
 #include "Shuffle.h"
+#include "TrackLanguage.h"
 
 Q_LOGGING_CATEGORY(lcPlayback, "ember.playback")
 
@@ -460,56 +461,12 @@ void Playback::chooseDefaultTracks() {
   const QJsonArray streams = source.value(QStringLiteral("MediaStreams")).toArray();
 
   if (audio_index_ < 0) {
-    const QString language = settings->audioLanguage();
-    int chosen = -1;
-    if (!language.isEmpty()) {
-      for (const QJsonValue& value : streams) {
-        const QJsonObject s = value.toObject();
-        if (Str(s, "Type") == QLatin1String("Audio") && Str(s, "Language") == language) {
-          chosen = s.value(QStringLiteral("Index")).toInt();
-          if (s.value(QStringLiteral("IsDefault")).toBool()) break;
-        }
-      }
-    }
-    if (chosen < 0 && source.contains(QStringLiteral("DefaultAudioStreamIndex"))) {
-      chosen = source.value(QStringLiteral("DefaultAudioStreamIndex")).toInt(-1);
-    }
-    if (chosen < 0) {
-      for (const QJsonValue& value : streams) {
-        if (Str(value.toObject(), "Type") == QLatin1String("Audio")) {
-          chosen = value.toObject().value(QStringLiteral("Index")).toInt();
-          break;
-        }
-      }
-    }
-    audio_index_ = chosen;
+    audio_index_ = PickAudioStream(streams, settings->audioLanguage(),
+                                   source.value(QStringLiteral("DefaultAudioStreamIndex")).toInt(-1));
   }
-
   if (subtitle_index_ == -2) {
-    const QString mode = settings->subtitleMode();
-    const QString language = settings->subtitleLanguage();
-    int chosen = -1;
-    auto find = [&](auto predicate) {
-      for (const QJsonValue& value : streams) {
-        const QJsonObject s = value.toObject();
-        if (Str(s, "Type") == QLatin1String("Subtitle") && predicate(s)) return s.value(QStringLiteral("Index")).toInt();
-      }
-      return -1;
-    };
-    if (mode == QLatin1String("off")) {
-      chosen = -1;
-    } else if (mode == QLatin1String("forced")) {
-      chosen = find([&](const QJsonObject& s) {
-        return s.value(QStringLiteral("IsForced")).toBool() && (language.isEmpty() || Str(s, "Language") == language);
-      });
-    } else if (mode == QLatin1String("always")) {
-      chosen = language.isEmpty() ? -1 : find([&](const QJsonObject& s) { return Str(s, "Language") == language; });
-      if (chosen < 0) chosen = source.value(QStringLiteral("DefaultSubtitleStreamIndex")).toInt(-1);
-      if (chosen < 0) chosen = find([](const QJsonObject&) { return true; });
-    } else {
-      chosen = source.value(QStringLiteral("DefaultSubtitleStreamIndex")).toInt(-1);
-    }
-    subtitle_index_ = chosen;
+    subtitle_index_ = PickSubtitleStream(streams, settings->subtitleLanguage(), settings->subtitleMode(),
+                                         source.value(QStringLiteral("DefaultSubtitleStreamIndex")).toInt(-1));
   }
   emit tracksChanged();
 }

@@ -47,6 +47,7 @@ qt_add_qml_module(ember_lib
     models/ItemListModel.h models/ItemListModel.cpp
     playback/Playback.h playback/Playback.cpp
     playback/Shuffle.h playback/Shuffle.cpp
+    playback/TrackLanguage.h playback/TrackLanguage.cpp
     livetv/GuideLogic.h livetv/GuideLogic.cpp
     livetv/LiveGuide.h livetv/LiveGuide.cpp
 )

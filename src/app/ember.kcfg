@@ -39,12 +39,12 @@
       <max>12</max>
     </entry>
     <entry name="AudioLanguage" type="String">
-      <label>Preferred audio language (ISO 639-2, e.g. eng); empty follows the server.</label>
-      <default></default>
+      <label>Preferred audio language: ISO 639-2 code with optional region (eng-US, spa); empty follows the server.</label>
+      <default>eng-US</default>
     </entry>
     <entry name="SubtitleLanguage" type="String">
-      <label>Preferred subtitle language; empty follows the server.</label>
-      <default></default>
+      <label>Preferred subtitle language, like AudioLanguage; SubtitleMode decides whether subtitles show.</label>
+      <default>eng-US</default>
     </entry>
     <entry name="SubtitleMode" type="String">
       <label>Subtitles: server, off, forced, always.</label>

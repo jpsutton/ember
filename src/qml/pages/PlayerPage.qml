@@ -9,12 +9,20 @@ import Ember.Player
 // Keys: OK or Play/Pause pauses, Left/Right skip back and forward (at once,
 // with a running total at that side), Up/Down and Channel +/-
 // jump chapters, Menu opens audio and subtitle choices, Info toggles the
-// panel, Back or Stop ends playback.
+// panel, Back or Stop ends playback. Home leaves it playing under a home
+// page of its own, and Back there comes back to it (see Main.goHome).
 FocusScope {
     id: page
     objectName: "player"
 
     property var app
+    property alias playback: playback
+    // Under a home page that Home put on top: the sound plays on.
+    property bool backgrounded: false
+    // Stopped for good under other pages (something else started playing,
+    // or it ended in the background); it pops itself when uncovered.
+    property bool retired: false
+    readonly property bool active: !retired && (playback.state === Playback.Playing || playback.state === Playback.Loading)
     property string itemId
     property bool fromStart: false
     // Set by a remote "Play On" request: where to start, and what follows.
@@ -53,12 +61,15 @@ FocusScope {
 
     Playback {
         id: playback
-        video: video
+        video: videoLoader.item
+        background: page.backgrounded
         onFinished: (completed) => {
             if (completed && page.queue.length > 0) {
                 page.playFromQueue()
             } else if (completed && playback.nextItem.id !== undefined && EmberSettings.autoPlayNext && !page.nextDismissed) {
                 page.startNext()
+            } else if (page.backgrounded) {
+                page.retire()
             } else {
                 page.close()
             }
@@ -79,6 +90,24 @@ FocusScope {
 
     function close() {
         if (page.app.stack.currentItem === page) page.app.stack.pop()
+    }
+
+    // Stops playback and lets go of mpv and the MPRIS name, for the player
+    // that starts next.
+    function retire() {
+        if (retired) return
+        if (playback.state === Playback.Playing || playback.state === Playback.Loading) playback.stop()
+        retired = true
+        backgrounded = false
+    }
+
+    StackView.onActivated: {
+        if (retired) {
+            Qt.callLater(() => { if (page.app.stack.currentItem === page) page.app.stack.pop() })
+        } else if (backgrounded) {
+            backgrounded = false
+            showOsd()
+        }
     }
 
     function playFromQueue() {
@@ -203,6 +232,7 @@ FocusScope {
 
     Mpris {
         id: mpris
+        enabled: !page.retired
         status: playback.state === Playback.Playing ? (playback.paused ? "Paused" : "Playing") : "Stopped"
         title: playback.subtitle !== "" && playback.item.type === "Episode" ? playback.subtitle : playback.title
         subtitle: playback.item.type === "Episode" ? playback.title : ""
@@ -226,9 +256,12 @@ FocusScope {
         visible: !playback.videoShown
     }
 
-    MpvVideo {
-        id: video
+    // Gone once retired, which frees its mpv.
+    Loader {
+        id: videoLoader
         anchors.fill: parent
+        active: !page.retired
+        sourceComponent: MpvVideo {}
     }
 
     Timer {

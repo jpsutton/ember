@@ -61,6 +61,9 @@ class Playback : public QObject {
   // A Live TV channel: no resume, no end; the cache keeps the last minutes,
   // so pausing and skipping back work within it (timeshift).
   Q_PROPERTY(bool live READ live NOTIFY itemChanged)
+  // Another page covers the player (Home while playing): the sound plays on
+  // but the picture isn't decoded.
+  Q_PROPERTY(bool background READ background WRITE setBackground NOTIFY backgroundChanged)
   // The cache in a live stream: the earliest position to skip back to, the
   // live edge, and how far behind it the picture is (0 while at the edge).
   Q_PROPERTY(double seekableStart READ seekableStart NOTIFY cacheChanged)
@@ -78,6 +81,8 @@ class Playback : public QObject {
 
   MpvVideo* video() const { return video_; }
   void setVideo(MpvVideo* video);
+  bool background() const { return background_; }
+  void setBackground(bool background);
   State state() const { return state_; }
   QVariantMap item() const { return item_; }
   QString title() const;
@@ -144,6 +149,7 @@ class Playback : public QObject {
   void nextItemChanged();
   void shufflingChanged();
   void cacheChanged();
+  void backgroundChanged();
   // Playback ended by the user or at the end of the file, and the server
   // has been told. |completed| is true at the natural end.
   void finished(bool completed);
@@ -187,6 +193,7 @@ class Playback : public QObject {
   int mpvTrackId(const QString& type, int jellyfin_index) const;
 
   QPointer<MpvVideo> video_;
+  bool background_ = false;
   State state_ = State::Idle;
   QVariantMap item_;
   QJsonObject item_json_;

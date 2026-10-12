@@ -661,6 +661,15 @@ QCoro::Task<> Playback::closeLiveStream(QString live_stream_id) {
   qCInfo(lcPlayback).noquote() << "closed live stream:" << (reply.ok() ? QStringLiteral("ok") : reply.error);
 }
 
+void Playback::setBackground(bool background) {
+  if (background == background_) return;
+  background_ = background;
+  // vid is an option, so it holds for the next episode too; back in front,
+  // mpv picks the video track again and catches it up to the sound.
+  if (video_) video_->setOption(QStringLiteral("vid"), background ? QStringLiteral("no") : QStringLiteral("auto"));
+  emit backgroundChanged();
+}
+
 void Playback::stop() {
   ++generation_;
   if (video_) video_->command({QStringLiteral("stop")});

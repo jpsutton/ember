@@ -22,6 +22,8 @@ FocusScope {
         { title: qsTr("Libraries on the home menu"), detail: "", action: () => page.app.stack.push(page.app.libraryPickerComponent) },
         { title: qsTr("Interface size"), detail: Math.round(EmberSettings.uiScale * 100) + " %",
           action: () => { EmberSettings.uiScale = cycle([1.0, 1.1, 1.2, 1.3, 1.5, 0.8, 0.9], Math.round(EmberSettings.uiScale * 10) / 10); EmberSettings.save() } },
+        { title: qsTr("Highlight color"), detail: Theme.accentEntry.name,
+          action: () => { EmberSettings.accent = cycle(Theme.accents.map(a => a.id), Theme.accentEntry.id); EmberSettings.save() } },
         { title: qsTr("Home menu scrolls"), detail: EmberSettings.staticMenu ? qsTr("No, the highlight moves") : qsTr("Yes, the highlight stays"),
           action: () => { EmberSettings.staticMenu = !EmberSettings.staticMenu; EmberSettings.save() } },
         { title: qsTr("Keep list highlight centered"), detail: onOff(EmberSettings.centeredListFocus),

@@ -40,6 +40,17 @@ ListView {
         color: list.barHighlight ? Theme.highlight : "transparent"
         width: list.width
         height: list.rowHeight
+
+        // Beside the accent-coloured text, a marker that does not depend on
+        // the accent differing from the grey of the other rows.
+        Rectangle {
+            visible: !list.barHighlight
+            x: 0
+            anchors.verticalCenter: parent.verticalCenter
+            width: Theme.px(8)
+            height: parent.height * 0.6
+            color: Theme.highlight
+        }
     }
 
     delegate: Item {
@@ -62,7 +73,7 @@ ListView {
             text: row.label
             font.family: list.fontFamily
             font.pixelSize: list.fontSize
-            color: row.current ? (list.barHighlight ? Theme.highlightText : Theme.highlight) : Theme.dim
+            color: row.current ? (list.barHighlight ? Theme.highlightText : Theme.highlight) : Theme.menuDim
         }
     }
 

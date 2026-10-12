@@ -19,6 +19,7 @@ Window {
 
     Binding { target: Theme; property: "screenHeight"; value: window.height }
     Binding { target: Theme; property: "scale"; value: EmberSettings.uiScale }
+    Binding { target: Theme; property: "accent"; value: EmberSettings.accent }
 
     // What a library's lists contain, by collection type.
     function libraryTypes(collectionType) {

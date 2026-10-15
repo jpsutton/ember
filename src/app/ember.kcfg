@@ -10,6 +10,10 @@
       <min>0.5</min>
       <max>2.0</max>
     </entry>
+    <entry name="Accent" type="String">
+      <label>Highlight colour: amber, sky, mint, rose, violet, white.</label>
+      <default>amber</default>
+    </entry>
     <entry name="StaticMenu" type="Bool">
       <label>The home menu stays still and the highlight moves (instead of a fixed highlight).</label>
       <default>true</default>
@@ -35,12 +39,12 @@
       <max>12</max>
     </entry>
     <entry name="AudioLanguage" type="String">
-      <label>Preferred audio language (ISO 639-2, e.g. eng); empty follows the server.</label>
-      <default></default>
+      <label>Preferred audio language: ISO 639-2 code with optional region (eng-US, spa); empty follows the server.</label>
+      <default>eng-US</default>
     </entry>
     <entry name="SubtitleLanguage" type="String">
-      <label>Preferred subtitle language; empty follows the server.</label>
-      <default></default>
+      <label>Preferred subtitle language, like AudioLanguage; SubtitleMode decides whether subtitles show.</label>
+      <default>eng-US</default>
     </entry>
     <entry name="SubtitleMode" type="String">
       <label>Subtitles: server, off, forced, always.</label>

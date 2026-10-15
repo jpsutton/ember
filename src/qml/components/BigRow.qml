@@ -65,6 +65,5 @@ Item {
         status: row.item.status || ""
         unplayedCount: row.item.unplayedCount || 0
         progress: row.item.playedPercentage || 0
-        color: row.current ? Theme.highlightText : Theme.dim
     }
 }

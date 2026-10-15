@@ -9,12 +9,20 @@ import Ember.Player
 // Keys: OK or Play/Pause pauses, Left/Right skip back and forward (at once,
 // with a running total at that side), Up/Down and Channel +/-
 // jump chapters, Menu opens audio and subtitle choices, Info toggles the
-// panel, Back or Stop ends playback.
+// panel, Back or Stop ends playback. Home leaves it playing under a home
+// page of its own, and Back there comes back to it (see Main.goHome).
 FocusScope {
     id: page
     objectName: "player"
 
     property var app
+    property alias playback: playback
+    // Under a home page that Home put on top: the sound plays on.
+    property bool backgrounded: false
+    // Stopped for good under other pages (something else started playing,
+    // or it ended in the background); it pops itself when uncovered.
+    property bool retired: false
+    readonly property bool active: !retired && (playback.state === Playback.Playing || playback.state === Playback.Loading)
     property string itemId
     property bool fromStart: false
     // Set by a remote "Play On" request: where to start, and what follows.
@@ -27,6 +35,7 @@ FocusScope {
     property bool osdVisible: true
     // The Up Next card was dismissed for this item.
     property bool nextDismissed: false
+    property bool introDismissed: false
     property real nextCountdown: 0
     // Skipping with Left/Right (as Plezy does): each press seeks at once,
     // and a readout at that side of the picture adds up a run of presses in
@@ -38,6 +47,12 @@ FocusScope {
 
     readonly property bool inIntro: playback.introStart >= 0 && playback.position >= playback.introStart
                                     && playback.position < playback.introEnd - 1
+    readonly property bool showSkipIntro: inIntro && !EmberSettings.autoSkipIntro && !introDismissed
+
+    // Height of the black bar below a letterboxed picture (mpv fits the video
+    // inside the full-screen item); 0 when the picture fills the screen.
+    readonly property real letterboxBottom: playback.videoAspect > 0
+        ? Math.max(0, (height - width / playback.videoAspect) / 2) : 0
     readonly property bool nearEnd: playback.duration > 0 && (playback.creditsStart > 0
                                     ? playback.position >= playback.creditsStart
                                     : playback.duration - playback.position <= 30)
@@ -46,17 +61,20 @@ FocusScope {
 
     Playback {
         id: playback
-        video: video
+        video: videoLoader.item
+        background: page.backgrounded
         onFinished: (completed) => {
             if (completed && page.queue.length > 0) {
                 page.playFromQueue()
             } else if (completed && playback.nextItem.id !== undefined && EmberSettings.autoPlayNext && !page.nextDismissed) {
                 page.startNext()
+            } else if (page.backgrounded) {
+                page.retire()
             } else {
                 page.close()
             }
         }
-        onItemChanged: page.nextDismissed = false
+        onItemChanged: { page.nextDismissed = false; page.introDismissed = false }
         onSeeked: mpris.notifySeeked()
         // Show the panel briefly when playback starts.
         onStateChanged: if (state === Playback.Playing) page.showOsd()
@@ -64,6 +82,7 @@ FocusScope {
 
     function startNext() {
         nextDismissed = false
+        introDismissed = false
         nextTimer.stop()
         playback.playNext()
         showOsd()
@@ -71,6 +90,24 @@ FocusScope {
 
     function close() {
         if (page.app.stack.currentItem === page) page.app.stack.pop()
+    }
+
+    // Stops playback and lets go of mpv and the MPRIS name, for the player
+    // that starts next.
+    function retire() {
+        if (retired) return
+        if (playback.state === Playback.Playing || playback.state === Playback.Loading) playback.stop()
+        retired = true
+        backgrounded = false
+    }
+
+    StackView.onActivated: {
+        if (retired) {
+            Qt.callLater(() => { if (page.app.stack.currentItem === page) page.app.stack.pop() })
+        } else if (backgrounded) {
+            backgrounded = false
+            showOsd()
+        }
     }
 
     function playFromQueue() {
@@ -195,6 +232,7 @@ FocusScope {
 
     Mpris {
         id: mpris
+        enabled: !page.retired
         status: playback.state === Playback.Playing ? (playback.paused ? "Paused" : "Playing") : "Stopped"
         title: playback.subtitle !== "" && playback.item.type === "Episode" ? playback.subtitle : playback.title
         subtitle: playback.item.type === "Episode" ? playback.title : ""
@@ -218,9 +256,12 @@ FocusScope {
         visible: !playback.videoShown
     }
 
-    MpvVideo {
-        id: video
+    // Gone once retired, which frees its mpv.
+    Loader {
+        id: videoLoader
         anchors.fill: parent
+        active: !page.retired
+        sourceComponent: MpvVideo {}
     }
 
     Timer {
@@ -295,9 +336,13 @@ FocusScope {
     Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: Theme.px(80)
-        anchors.bottom: osd.top
-        anchors.bottomMargin: Theme.px(30)
-        visible: page.inIntro && !EmberSettings.autoSkipIntro
+        // In the letterbox bar under the picture when it has room, else above
+        // the on-screen display.
+        readonly property bool inBar: page.letterboxBottom >= height + Theme.px(30)
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: inBar ? (page.letterboxBottom - height) / 2
+                                    : (osd.visible ? osd.height + Theme.px(30) : Theme.px(60))
+        visible: page.showSkipIntro
         width: skipText.implicitWidth + Theme.px(60)
         height: Theme.px(70)
         radius: Theme.px(8)
@@ -305,7 +350,7 @@ FocusScope {
         Text {
             id: skipText
             anchors.centerIn: parent
-            text: qsTr("OK: Skip intro")
+            text: qsTr("OK: Skip intro  ·  Back: Dismiss")
             font.family: Theme.fontFamily
             font.pixelSize: Theme.rowFont
             font.bold: true
@@ -484,6 +529,7 @@ FocusScope {
         switch (event.key) {
         case Qt.Key_Back:
             if (page.showNext) { page.nextDismissed = true; break }
+            if (page.showSkipIntro) { page.introDismissed = true; break }
             if (playback.state === Playback.Failed || playback.state === Playback.Idle) { page.close(); break }
             playback.stop()
             break
@@ -493,7 +539,7 @@ FocusScope {
             break
         case Qt.Key_Return:
             if (page.showNext) page.startNext()
-            else if (page.inIntro && !EmberSettings.autoSkipIntro) playback.seekTo(playback.introEnd)
+            else if (page.showSkipIntro) playback.seekTo(playback.introEnd)
             else { playback.togglePause(); page.showOsd() }
             break
         case Qt.Key_MediaTogglePlayPause:

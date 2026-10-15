@@ -29,11 +29,26 @@ QString ImageUrl(const ApiClient* api, const QString& item_id, const QString& ty
 //   studios, seriesId, seriesName, seasonId, seasonName, indexNumber,
 //   parentIndexNumber, episodeLabel (S01E02), childCount, recursiveCount,
 //   played, playedPercentage, playbackPositionTicks, resumeText,
-//   unplayedCount, isFavorite, poster, backdrop, logo, thumb, videoFlags,
-//   audioFlags, hasSubtitles, status (playable leaf: "watched",
+//   unplayedCount, isFavorite, poster, backdrop, logo, thumb, infoBadges,
+//   mediaBadges (see InfoBadges, MediaBadges), status (playable leaf: "watched",
 //   "inProgress", "unwatched"; folders and channels: ""), and for Live TV
 //   channelNumber, channelId, startEpoch, endEpoch (seconds), episodeTitle
 QVariantMap ItemToVariant(const QJsonObject& item, const ApiClient* api);
+
+// The details pane shows what it can as badges, as Amber does. Each is a map
+// of tag (text on a solid block), icon (drawn there instead: film, speaker,
+// channels, aspect, calendar, clock, star, critic, check, heart) and value
+// (in an outlined block); any of them may be empty.
+//
+// About the item: rating, air date or year (a show's run), runtime, scores,
+// seasons and episodes, watched or unwatched count, favourite.
+QVariantList InfoBadges(const QJsonObject& item);
+// About the file, from its first video and default (or first) audio stream:
+// resolution, codec, HDR, 3D, aspect ratio, audio codec, Atmos, channels,
+// and CC when there are subtitles in |subtitle_language| (a preference as in
+// playback/TrackLanguage.h; any language when empty). ItemToVariant passes
+// the Subtitle language setting.
+QVariantList MediaBadges(const QJsonObject& item, const QString& subtitle_language);
 
 // When the item became watchable, for "Recently aired": its premiere date,
 // or the date it was added when that is earlier (a streaming service that

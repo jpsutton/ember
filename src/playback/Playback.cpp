@@ -20,6 +20,7 @@
 #include "../player/MpvVideo.h"
 #include "EmberSettings.h"
 #include "Shuffle.h"
+#include "TrackLanguage.h"
 
 Q_LOGGING_CATEGORY(lcPlayback, "ember.playback")
 
@@ -93,7 +94,9 @@ void Playback::setVideo(MpvVideo* video) {
   if (video_) {
     connect(video_, &MpvVideo::mpvEvent, this, &Playback::onMpvEvent);
     connect(video_, &MpvVideo::mpvPropertyChanged, this, &Playback::onMpvProperty);
-    for (const char* name : {"time-pos", "duration"}) video_->observe(QString::fromLatin1(name), QStringLiteral("double"));
+    for (const char* name : {"time-pos", "duration", "video-params/aspect"}) {
+      video_->observe(QString::fromLatin1(name), QStringLiteral("double"));
+    }
     for (const char* name : {"pause", "paused-for-cache", "eof-reached", "deinterlace-active"}) {
       video_->observe(QString::fromLatin1(name), QStringLiteral("flag"));
     }
@@ -274,6 +277,10 @@ QCoro::Task<> Playback::playTask(QString item_id, bool from_start, double start_
   duration_ = 0;
   emit positionChanged();
   emit durationChanged();
+  if (video_aspect_ != 0) {
+    video_aspect_ = 0;
+    emit videoAspectChanged();
+  }
   intro_start_ = intro_end_ = credits_start_ = -1;
   emit segmentsChanged();
   next_item_.clear();
@@ -454,56 +461,12 @@ void Playback::chooseDefaultTracks() {
   const QJsonArray streams = source.value(QStringLiteral("MediaStreams")).toArray();
 
   if (audio_index_ < 0) {
-    const QString language = settings->audioLanguage();
-    int chosen = -1;
-    if (!language.isEmpty()) {
-      for (const QJsonValue& value : streams) {
-        const QJsonObject s = value.toObject();
-        if (Str(s, "Type") == QLatin1String("Audio") && Str(s, "Language") == language) {
-          chosen = s.value(QStringLiteral("Index")).toInt();
-          if (s.value(QStringLiteral("IsDefault")).toBool()) break;
-        }
-      }
-    }
-    if (chosen < 0 && source.contains(QStringLiteral("DefaultAudioStreamIndex"))) {
-      chosen = source.value(QStringLiteral("DefaultAudioStreamIndex")).toInt(-1);
-    }
-    if (chosen < 0) {
-      for (const QJsonValue& value : streams) {
-        if (Str(value.toObject(), "Type") == QLatin1String("Audio")) {
-          chosen = value.toObject().value(QStringLiteral("Index")).toInt();
-          break;
-        }
-      }
-    }
-    audio_index_ = chosen;
+    audio_index_ = PickAudioStream(streams, settings->audioLanguage(),
+                                   source.value(QStringLiteral("DefaultAudioStreamIndex")).toInt(-1));
   }
-
   if (subtitle_index_ == -2) {
-    const QString mode = settings->subtitleMode();
-    const QString language = settings->subtitleLanguage();
-    int chosen = -1;
-    auto find = [&](auto predicate) {
-      for (const QJsonValue& value : streams) {
-        const QJsonObject s = value.toObject();
-        if (Str(s, "Type") == QLatin1String("Subtitle") && predicate(s)) return s.value(QStringLiteral("Index")).toInt();
-      }
-      return -1;
-    };
-    if (mode == QLatin1String("off")) {
-      chosen = -1;
-    } else if (mode == QLatin1String("forced")) {
-      chosen = find([&](const QJsonObject& s) {
-        return s.value(QStringLiteral("IsForced")).toBool() && (language.isEmpty() || Str(s, "Language") == language);
-      });
-    } else if (mode == QLatin1String("always")) {
-      chosen = language.isEmpty() ? -1 : find([&](const QJsonObject& s) { return Str(s, "Language") == language; });
-      if (chosen < 0) chosen = source.value(QStringLiteral("DefaultSubtitleStreamIndex")).toInt(-1);
-      if (chosen < 0) chosen = find([](const QJsonObject&) { return true; });
-    } else {
-      chosen = source.value(QStringLiteral("DefaultSubtitleStreamIndex")).toInt(-1);
-    }
-    subtitle_index_ = chosen;
+    subtitle_index_ = PickSubtitleStream(streams, settings->subtitleLanguage(), settings->subtitleMode(),
+                                         source.value(QStringLiteral("DefaultSubtitleStreamIndex")).toInt(-1));
   }
   emit tracksChanged();
 }
@@ -698,6 +661,15 @@ QCoro::Task<> Playback::closeLiveStream(QString live_stream_id) {
   qCInfo(lcPlayback).noquote() << "closed live stream:" << (reply.ok() ? QStringLiteral("ok") : reply.error);
 }
 
+void Playback::setBackground(bool background) {
+  if (background == background_) return;
+  background_ = background;
+  // vid is an option, so it holds for the next episode too; back in front,
+  // mpv picks the video track again and catches it up to the sound.
+  if (video_) video_->setOption(QStringLiteral("vid"), background ? QStringLiteral("no") : QStringLiteral("auto"));
+  emit backgroundChanged();
+}
+
 void Playback::stop() {
   ++generation_;
   if (video_) video_->command({QStringLiteral("stop")});
@@ -793,6 +765,8 @@ QCoro::Task<> Playback::loadSegments(QString item_id, quint64 generation) {
     }
     if (credits_start_ < 0 && credits_name.match(name).hasMatch()) credits_start_ = start;
   }
+  qCInfo(lcPlayback, "segments: intro %.1f-%.1f, credits from %.1f (%s)", intro_start_, intro_end_, credits_start_,
+         reply.ok() ? "server" : "request failed");
   emit segmentsChanged();
 }
 
@@ -872,6 +846,11 @@ void Playback::onMpvProperty(const QString& name, const QVariant& value) {
   } else if (name == QLatin1String("duration")) {
     duration_ = value.isValid() ? value.toDouble() : 0;
     emit durationChanged();
+  } else if (name == QLatin1String("video-params/aspect")) {
+    const double aspect = value.isValid() ? value.toDouble() : 0;
+    if (qFuzzyCompare(aspect + 1, video_aspect_ + 1)) return;
+    video_aspect_ = aspect;
+    emit videoAspectChanged();
   } else if (name == QLatin1String("deinterlace-active")) {
     if (value.toBool()) qCInfo(lcPlayback, "deinterlacing");
   } else if (name == QLatin1String("pause")) {

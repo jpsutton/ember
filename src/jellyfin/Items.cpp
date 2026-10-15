@@ -10,7 +10,11 @@
 #include <QLocale>
 #include <QUrlQuery>
 
+#include <cmath>
+
 #include "ApiClient.h"
+#include "EmberSettings.h"
+#include "playback/TrackLanguage.h"
 
 namespace ember::jellyfin {
 namespace {
@@ -26,34 +30,198 @@ QString VideoResolution(int width, int height) {
   return {};
 }
 
-QString CodecName(const QString& codec) {
+QString Str(const QJsonObject& o, const char* key) { return o.value(QLatin1String(key)).toString(); }
+
+// A badge for the details pane: |tag| (or |icon|) on a solid block, then
+// |value| in an outlined one. Either half may be empty.
+QVariantMap Badge(const QString& tag, const QString& icon, const QString& value) {
+  return QVariantMap{{QStringLiteral("tag"), tag}, {QStringLiteral("icon"), icon}, {QStringLiteral("value"), value}};
+}
+
+QString VideoCodecName(const QString& codec) {
   const QString c = codec.toLower();
   if (c == QLatin1String("h264") || c == QLatin1String("avc")) return QStringLiteral("H.264");
   if (c == QLatin1String("hevc") || c == QLatin1String("h265")) return QStringLiteral("HEVC");
   if (c == QLatin1String("av1")) return QStringLiteral("AV1");
   if (c == QLatin1String("vp9")) return QStringLiteral("VP9");
+  if (c == QLatin1String("vp8")) return QStringLiteral("VP8");
   if (c == QLatin1String("mpeg2video")) return QStringLiteral("MPEG-2");
-  if (c == QLatin1String("ac3")) return QStringLiteral("Dolby Digital");
-  if (c == QLatin1String("eac3")) return QStringLiteral("Dolby Digital+");
-  if (c == QLatin1String("truehd")) return QStringLiteral("TrueHD");
-  if (c == QLatin1String("dts")) return QStringLiteral("DTS");
-  if (c == QLatin1String("aac")) return QStringLiteral("AAC");
-  if (c == QLatin1String("flac")) return QStringLiteral("FLAC");
-  if (c == QLatin1String("opus")) return QStringLiteral("Opus");
-  if (c == QLatin1String("mp3")) return QStringLiteral("MP3");
+  if (c == QLatin1String("mpeg4")) return QStringLiteral("MPEG-4");
+  if (c == QLatin1String("vc1")) return QStringLiteral("VC-1");
   return codec.toUpper();
 }
 
-QString ChannelLayout(int channels) {
+// Short names, to fit a badge: DD for Dolby Digital and so on.
+QString AudioCodecName(const QString& codec, const QString& profile) {
+  const QString c = codec.toLower();
+  if (c == QLatin1String("ac3")) return QStringLiteral("DD");
+  if (c == QLatin1String("eac3")) return QStringLiteral("DD+");
+  if (c == QLatin1String("truehd")) return QStringLiteral("TrueHD");
+  if (c == QLatin1String("dts") || c == QLatin1String("dca")) {
+    if (profile.contains(QLatin1String("DTS:X"))) return QStringLiteral("DTS:X");
+    if (profile.contains(QLatin1String("MA"))) return QStringLiteral("DTS-HD MA");
+    if (profile.contains(QLatin1String("HRA"))) return QStringLiteral("DTS-HD HRA");
+    return QStringLiteral("DTS");
+  }
+  if (c == QLatin1String("aac")) return QStringLiteral("AAC");
+  if (c == QLatin1String("flac")) return QStringLiteral("FLAC");
+  if (c == QLatin1String("alac")) return QStringLiteral("ALAC");
+  if (c == QLatin1String("opus")) return QStringLiteral("Opus");
+  if (c == QLatin1String("vorbis")) return QStringLiteral("Vorbis");
+  if (c == QLatin1String("mp3")) return QStringLiteral("MP3");
+  if (c == QLatin1String("mp2")) return QStringLiteral("MP2");
+  if (c.startsWith(QLatin1String("pcm"))) return QStringLiteral("PCM");
+  return codec.toUpper();
+}
+
+QString ChannelLayout(int channels, const QString& layout) {
   switch (channels) {
     case 0: return {};
-    case 1: return QStringLiteral("Mono");
-    case 2: return QStringLiteral("Stereo");
+    case 1: return QStringLiteral("1.0");
+    case 2: return QStringLiteral("2.0");
+    case 3: return QStringLiteral("2.1");
     case 6: return QStringLiteral("5.1");
     case 8: return QStringLiteral("7.1");
-    default: return QStringLiteral("%1 ch").arg(channels);
+    default: return layout.isEmpty() ? QString::number(channels) : layout;
   }
 }
+
+// The picture's shape as Amber shows it (1.78, 2.35), from the stream's
+// display aspect ("16:9", "2.40:1") or else its size, snapped to the usual
+// film and TV ratios.
+QString AspectRatio(const QJsonObject& video) {
+  double ratio = 0;
+  const QStringList parts = Str(video, "AspectRatio").split(QLatin1Char(':'));
+  if (parts.size() == 2 && parts[1].toDouble() > 0) ratio = parts[0].toDouble() / parts[1].toDouble();
+  const int width = video.value(QStringLiteral("Width")).toInt();
+  const int height = video.value(QStringLiteral("Height")).toInt();
+  if (ratio <= 0 && height > 0) ratio = double(width) / height;
+  if (ratio <= 0) return {};
+  for (const double usual : {1.33, 1.37, 1.66, 1.78, 1.85, 2.0, 2.2, 2.35, 2.39, 2.4, 2.55, 2.76}) {
+    if (std::abs(ratio - usual) < 0.02) {
+      ratio = usual;
+      break;
+    }
+  }
+  return QString::number(ratio, 'f', 2);
+}
+
+}  // namespace
+
+QVariantList MediaBadges(const QJsonObject& item, const QString& subtitle_language) {
+  QJsonObject video;
+  QJsonObject audio;
+  bool subtitles = false;
+  for (const QJsonValue& value : item.value(QStringLiteral("MediaStreams")).toArray()) {
+    const QJsonObject stream = value.toObject();
+    const QString kind = Str(stream, "Type");
+    if (kind == QLatin1String("Video") && video.isEmpty()) video = stream;
+    if (kind == QLatin1String("Audio")) {
+      if (audio.isEmpty() || stream.value(QStringLiteral("IsDefault")).toBool()) audio = stream;
+    }
+    if (kind == QLatin1String("Subtitle") &&
+        (subtitle_language.isEmpty() || LanguageScore(stream, subtitle_language) >= 0)) {
+      subtitles = true;
+    }
+  }
+
+  QVariantList badges;
+  if (!video.isEmpty()) {
+    const QString resolution =
+        VideoResolution(video.value(QStringLiteral("Width")).toInt(), video.value(QStringLiteral("Height")).toInt());
+    if (!resolution.isEmpty()) {
+      const bool interlaced = video.value(QStringLiteral("IsInterlaced")).toBool();
+      const int height = video.value(QStringLiteral("Height")).toInt();
+      QString value = resolution == QLatin1String("4K")      ? QStringLiteral("4K")
+                      : resolution == QLatin1String("1080p") ? QStringLiteral("1080")
+                      : resolution == QLatin1String("720p")  ? QStringLiteral("720")
+                      : height >= 560                        ? QStringLiteral("576")
+                                                             : QStringLiteral("480");
+      if (interlaced && value != QLatin1String("4K")) value += QLatin1Char('i');
+      const QString tag = resolution == QLatin1String("4K") ? QStringLiteral("UHD")
+                          : resolution == QLatin1String("SD") ? QStringLiteral("SD")
+                                                              : QStringLiteral("HD");
+      badges.append(Badge(tag, {}, value));
+    }
+    badges.append(Badge({}, QStringLiteral("film"), VideoCodecName(Str(video, "Codec"))));
+    const QString range = Str(video, "VideoRangeType");
+    if (range.startsWith(QLatin1String("DOVI"))) badges.append(Badge(QStringLiteral("DV"), {}, {}));
+    if (range == QLatin1String("HDR10") || range == QLatin1String("DOVIWithHDR10")) {
+      badges.append(Badge(QStringLiteral("HDR"), {}, QStringLiteral("10")));
+    } else if (range == QLatin1String("HDR10Plus") || range == QLatin1String("DOVIWithHDR10Plus")) {
+      badges.append(Badge(QStringLiteral("HDR"), {}, QStringLiteral("10+")));
+    } else if (range == QLatin1String("HLG") || range == QLatin1String("DOVIWithHLG")) {
+      badges.append(Badge(QStringLiteral("HDR"), {}, QStringLiteral("HLG")));
+    }
+    if (!Str(item, "Video3DFormat").isEmpty()) badges.append(Badge(QStringLiteral("3D"), {}, {}));
+    const QString aspect = AspectRatio(video);
+    if (!aspect.isEmpty()) badges.append(Badge({}, QStringLiteral("aspect"), aspect));
+  }
+  if (!audio.isEmpty()) {
+    const QString profile = Str(audio, "Profile");
+    badges.append(Badge({}, QStringLiteral("speaker"), AudioCodecName(Str(audio, "Codec"), profile)));
+    if (profile.contains(QLatin1String("Atmos"))) badges.append(Badge(QStringLiteral("ATMOS"), {}, {}));
+    const QString layout =
+        ChannelLayout(audio.value(QStringLiteral("Channels")).toInt(), Str(audio, "ChannelLayout"));
+    if (!layout.isEmpty()) badges.append(Badge({}, QStringLiteral("channels"), layout));
+  }
+  if (subtitles) badges.append(Badge(QStringLiteral("CC"), {}, {}));
+  return badges;
+}
+
+QVariantList InfoBadges(const QJsonObject& item) {
+  const QString type = Str(item, "Type");
+  const QJsonObject user = item.value(QStringLiteral("UserData")).toObject();
+  QVariantList badges;
+
+  const QString rating = Str(item, "OfficialRating");
+  if (!rating.isEmpty()) badges.append(Badge(rating, {}, {}));
+
+  // When: an episode's air date, a show's run, a film's year.
+  const QDateTime premiere = QDateTime::fromString(Str(item, "PremiereDate"), Qt::ISODate);
+  const int year = item.value(QStringLiteral("ProductionYear")).toInt();
+  if (type == QLatin1String("Episode") && premiere.isValid()) {
+    badges.append(Badge({}, QStringLiteral("calendar"), QLocale().toString(premiere.date(), QLocale::ShortFormat)));
+  } else if (type == QLatin1String("Series") && year > 0) {
+    const QDateTime end = QDateTime::fromString(Str(item, "EndDate"), Qt::ISODate);
+    QString run = QString::number(year) + QChar(0x2013);
+    if (Str(item, "Status") == QLatin1String("Ended") && end.isValid() && end.date().year() != year) {
+      run += QString::number(end.date().year());
+    } else if (Str(item, "Status") == QLatin1String("Ended")) {
+      run = QString::number(year);
+    }
+    badges.append(Badge({}, QStringLiteral("calendar"), run));
+  } else if (year > 0 && type != QLatin1String("Season")) {
+    badges.append(Badge({}, QStringLiteral("calendar"), QString::number(year)));
+  }
+
+  const QString runtime = FormatRuntime(item.value(QStringLiteral("RunTimeTicks")).toInteger());
+  if (!runtime.isEmpty() && type != QLatin1String("Season")) badges.append(Badge({}, QStringLiteral("clock"), runtime));
+  const double community = item.value(QStringLiteral("CommunityRating")).toDouble();
+  if (community > 0) badges.append(Badge({}, QStringLiteral("star"), QString::number(community, 'f', 1)));
+  const double critic = item.value(QStringLiteral("CriticRating")).toDouble();
+  if (critic > 0) badges.append(Badge({}, QStringLiteral("critic"), QStringLiteral("%1%").arg(int(critic))));
+
+  const int unplayed = user.value(QStringLiteral("UnplayedItemCount")).toInt();
+  if (type == QLatin1String("Series")) {
+    const int seasons = item.value(QStringLiteral("ChildCount")).toInt();
+    const int episodes = item.value(QStringLiteral("RecursiveItemCount")).toInt();
+    if (seasons > 0) badges.append(Badge(QStringLiteral("SEASONS"), {}, QString::number(seasons)));
+    if (episodes > 0) badges.append(Badge(QStringLiteral("EPISODES"), {}, QString::number(episodes)));
+  } else if (type == QLatin1String("Season")) {
+    const int episodes = item.value(QStringLiteral("ChildCount")).toInt();
+    if (episodes > 0) badges.append(Badge(QStringLiteral("EPISODES"), {}, QString::number(episodes)));
+  }
+  if (user.value(QStringLiteral("Played")).toBool()) {
+    badges.append(Badge(QStringLiteral("WATCHED"), QStringLiteral("check"), {}));
+  } else if (unplayed > 0 && (type == QLatin1String("Series") || type == QLatin1String("Season"))) {
+    badges.append(Badge(QStringLiteral("UNWATCHED"), {}, QString::number(unplayed)));
+  }
+  if (user.value(QStringLiteral("IsFavorite")).toBool()) badges.append(Badge({}, QStringLiteral("heart"), {}));
+  return badges;
+}
+
+namespace {
 
 QStringList Names(const QJsonArray& array) {
   QStringList names;
@@ -224,37 +392,8 @@ QVariantMap ItemToVariant(const QJsonObject& item, const ApiClient* api) {
   }
   m[QStringLiteral("logo")] = logo;
 
-  // Codec flags from the first video and default (or first) audio stream.
-  QStringList video_flags;
-  QStringList audio_flags;
-  bool subtitles = false;
-  QJsonObject video;
-  QJsonObject audio;
-  for (const QJsonValue& value : item.value(QStringLiteral("MediaStreams")).toArray()) {
-    const QJsonObject stream = value.toObject();
-    const QString kind = stream.value(QStringLiteral("Type")).toString();
-    if (kind == QLatin1String("Video") && video.isEmpty()) video = stream;
-    if (kind == QLatin1String("Audio") && (audio.isEmpty() || stream.value(QStringLiteral("IsDefault")).toBool())) {
-      audio = stream;
-    }
-    if (kind == QLatin1String("Subtitle")) subtitles = true;
-  }
-  if (!video.isEmpty()) {
-    const QString resolution =
-        VideoResolution(video.value(QStringLiteral("Width")).toInt(), video.value(QStringLiteral("Height")).toInt());
-    if (!resolution.isEmpty()) video_flags.append(resolution);
-    video_flags.append(CodecName(video.value(QStringLiteral("Codec")).toString()));
-    const QString range = video.value(QStringLiteral("VideoRangeType")).toString();
-    if (!range.isEmpty() && range != QLatin1String("SDR") && range != QLatin1String("Unknown")) video_flags.append(range);
-  }
-  if (!audio.isEmpty()) {
-    audio_flags.append(CodecName(audio.value(QStringLiteral("Codec")).toString()));
-    const QString layout = ChannelLayout(audio.value(QStringLiteral("Channels")).toInt());
-    if (!layout.isEmpty()) audio_flags.append(layout);
-  }
-  m[QStringLiteral("videoFlags")] = video_flags.join(QStringLiteral(" · "));
-  m[QStringLiteral("audioFlags")] = audio_flags.join(QStringLiteral(" · "));
-  m[QStringLiteral("hasSubtitles")] = subtitles;
+  m[QStringLiteral("infoBadges")] = InfoBadges(item);
+  m[QStringLiteral("mediaBadges")] = MediaBadges(item, EmberSettings::self()->subtitleLanguage());
   return m;
 }
 

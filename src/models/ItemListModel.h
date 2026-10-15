@@ -46,6 +46,8 @@ class ItemListModel : public QAbstractListModel {
   Q_PROPERTY(QString searchTerm READ searchTerm WRITE setSearchTerm NOTIFY queryChanged)
   Q_PROPERTY(int count READ count NOTIFY countChanged)
   Q_PROPERTY(int totalCount READ totalCount NOTIFY countChanged)
+  // Seasons and episodes before "hide watched" dropped the watched ones.
+  Q_PROPERTY(int unfilteredCount READ unfilteredCount NOTIFY countChanged)
   Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
   Q_PROPERTY(QString errorString READ errorString NOTIFY errorStringChanged)
   // Changes whenever any row does, so bindings that call get() re-evaluate.
@@ -92,6 +94,7 @@ class ItemListModel : public QAbstractListModel {
 
   int count() const { return int(rows_.size()); }
   int totalCount() const { return total_; }
+  int unfilteredCount() const { return unfiltered_count_; }
   bool loading() const { return loading_; }
   QString errorString() const { return error_string_; }
   int revision() const { return revision_; }
@@ -166,6 +169,7 @@ class ItemListModel : public QAbstractListModel {
   QList<QJsonObject> aired_pending_;
   int aired_fetched_ = 0;
   int total_ = 0;
+  int unfiltered_count_ = 0;
   bool loading_ = false;
   bool exhausted_ = false;
   QString error_string_;

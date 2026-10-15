@@ -12,18 +12,6 @@ Item {
     readonly property bool isEpisode: item.type === "Episode"
     readonly property bool isSeason: item.type === "Season"
 
-    function metaLine() {
-        const parts = []
-        if (item.runtimeText) parts.push(item.runtimeText)
-        if (item.communityRating) parts.push("★ " + item.communityRating)
-        if (item.officialRating) parts.push(item.officialRating)
-        if (isEpisode && item.premiereDate) parts.push(item.premiereDate)
-        if (item.type === "Series" && item.recursiveCount) parts.push(qsTr("%1 episodes").arg(item.recursiveCount))
-        if (isSeason && item.childCount) parts.push(qsTr("%1 episodes").arg(item.childCount))
-        if (item.status === "inProgress" && item.resumeText) parts.push(qsTr("Resume at %1").arg(item.resumeText))
-        return parts.join("  ·  ")
-    }
-
     function heading() {
         if (isEpisode) return item.seriesName || item.name
         if (isSeason) return item.seriesName || item.name
@@ -32,8 +20,9 @@ Item {
 
     function subheading() {
         if (isEpisode) return (item.episodeLabel ? item.episodeLabel + "  " : "") + (item.name || "")
+        // A film's year is in its badges.
         if (isSeason) return item.name || ""
-        return item.year ? String(item.year) : ""
+        return ""
     }
 
     Image {
@@ -95,14 +84,9 @@ Item {
             color: Theme.text
         }
 
-        Text {
+        BadgeRow {
             width: parent.width
-            text: pane.metaLine()
-            visible: text !== ""
-            wrapMode: Text.WordWrap
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.bodyFont
-            color: Theme.highlight
+            badges: pane.item.infoBadges || []
         }
 
         Text {
@@ -161,16 +145,9 @@ Item {
             color: Theme.dim
         }
 
-        Text {
+        BadgeRow {
             width: parent.width
-            text: [pane.item.videoFlags, pane.item.audioFlags, pane.item.hasSubtitles ? "CC" : ""]
-                  .filter(s => s).join("   |   ")
-            visible: text !== ""
-            elide: Text.ElideRight
-            font.family: Theme.fontFamily
-            font.pixelSize: Theme.smallFont
-            font.bold: true
-            color: Theme.dim
+            badges: pane.item.mediaBadges || []
         }
     }
 }

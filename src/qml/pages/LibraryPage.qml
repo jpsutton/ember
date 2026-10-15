@@ -18,6 +18,7 @@ FocusScope {
     // The item last played from here, refreshed when the player closes.
     property string playedId
     property string restoreId
+    property int restoreIndex: -1
 
     // Amber's list styles:
     //   list    List: 12 rows beside the details
@@ -43,21 +44,30 @@ FocusScope {
     // with it.
     readonly property var current: items.revision >= 0 && view.currentIndex >= 0 ? items.get(view.currentIndex) : ({})
     readonly property bool sortable: items.mode === "items" && !context.fixedSort
+    // "Hide watched" is for this list and what is opened from it; it is not
+    // saved, so it ends with the list (home pops them all).
+    readonly property bool filterable: items.mode === "items" || items.mode === "aired"
+                                       || items.mode === "seasons" || items.mode === "episodes"
+    readonly property var childContext: Object.assign({}, context, { hideWatched: items.hideWatched })
     readonly property string viewKey: context.viewKey || ""
 
     ItemListModel {
         id: items
         onLoaded: {
             // A show with a single season goes straight to its episodes.
-            if (mode === "seasons" && count === 1) {
+            if (mode === "seasons" && unfilteredCount === 1) {
                 seasonId = get(0).id
                 mode = "episodes"
                 return
             }
             if (page.restoreId !== "") {
                 const index = indexOfId(page.restoreId)
+                // A row that left the list (watched, with them hidden)
+                // leaves the next row at its place.
                 if (index >= 0) page.view.currentIndex = index
+                else if (page.restoreIndex >= 0 && count > 0) page.view.currentIndex = Math.min(page.restoreIndex, count - 1)
                 page.restoreId = ""
+                page.restoreIndex = -1
             }
         }
         onLetterFound: (index) => page.view.currentIndex = index
@@ -66,6 +76,7 @@ FocusScope {
 
     Component.onCompleted: {
         for (const key in query) items[key] = query[key]
+        if (context.hideWatched) items.hideWatched = true
         // The list style is remembered per library, with a default for the
         // rest (seasons, episodes, genres).
         const defaults = ViewSettings.load("default")
@@ -76,7 +87,6 @@ FocusScope {
             if (sortable) {
                 if (saved.sortBy) items.sortBy = saved.sortBy
                 if (saved.descending !== undefined) items.descending = saved.descending === "true"
-                if (saved.hideWatched !== undefined) items.hideWatched = saved.hideWatched === "true"
             }
         }
     }
@@ -96,6 +106,7 @@ FocusScope {
     // Re-sorts or re-filters, keeping the highlighted item when it stays.
     function requery(change) {
         restoreId = current.id || ""
+        restoreIndex = view.currentIndex
         change()
         saveView()
     }
@@ -103,7 +114,7 @@ FocusScope {
     function saveView() {
         ViewSettings.save(viewKey !== "" ? viewKey : "default", sortable
             ? { sortBy: items.sortBy, descending: String(items.descending),
-                hideWatched: String(items.hideWatched), viewType: viewType }
+                viewType: viewType }
             : { viewType: viewType })
     }
 
@@ -112,13 +123,15 @@ FocusScope {
     StackView.onActivated: {
         if (items.stale) {
             restoreId = current.id || ""
+            restoreIndex = view.currentIndex
             items.reload()
             playedId = ""
             return
         }
         if (playedId === "") return
-        if (items.mode === "episodes" || items.mode === "seasons" || items.mode === "resume" || items.mode === "nextup") {
+        if (items.hideWatched || items.mode === "episodes" || items.mode === "seasons" || items.mode === "resume" || items.mode === "nextup") {
             restoreId = current.id || ""
+            restoreIndex = view.currentIndex
             items.reload()
         } else {
             items.refreshItem(playedId)
@@ -152,7 +165,7 @@ FocusScope {
         const item = current
         if (item.playable) page.playedId = item.id
         if (item.type === "Series" || item.type === "Season") page.playedId = item.id
-        page.app.openItem(item, Object.assign({}, page.context, { series: page.context.series }))
+        page.app.openItem(item, Object.assign({}, page.childContext, { series: page.context.series }))
     }
 
     function viewOptions() {
@@ -185,9 +198,9 @@ FocusScope {
             })
             add(qsTr("Order"), items.descending ? qsTr("Descending") : qsTr("Ascending"),
                 () => page.requery(() => items.descending = !items.descending))
-            add(qsTr("Hide watched"), items.hideWatched ? qsTr("On") : qsTr("Off"),
-                () => page.requery(() => items.hideWatched = !items.hideWatched))
         }
+        if (page.filterable) add(qsTr("Hide watched"), items.hideWatched ? qsTr("On") : qsTr("Off"),
+            () => page.requery(() => items.hideWatched = !items.hideWatched))
         add(qsTr("Search"), "", () => page.app.stack.push(page.app.searchPageComponent))
         add(qsTr("Home"), "", () => page.app.goHome())
         page.app.menu.open(qsTr("View options"), options, (i) => actions[i](), "left", 0)
@@ -230,11 +243,11 @@ FocusScope {
             break
         case Qt.Key_Info:
             if (view.currentIndex >= 0 && current.type !== "Genre" && current.type !== "Year") {
-                app.openInfo(current, context)
+                app.openInfo(current, childContext)
             }
             break
         case Qt.Key_Menu:
-            if (view.currentIndex >= 0) app.itemMenu(current, items, context)
+            if (view.currentIndex >= 0) app.itemMenu(current, items, childContext)
             break
         case Qt.Key_MediaTogglePlayPause:
         case Qt.Key_MediaPlay:
@@ -440,7 +453,7 @@ FocusScope {
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             text: items.loading ? qsTr("Loading…")
-                  : (items.errorString !== "" ? items.errorString + "\n" + qsTr("OK tries again.") : qsTr("Nothing here."))
+                  : (items.errorString !== "" ? items.errorString + "\n" + qsTr("OK tries again.") : (items.hideWatched ? qsTr("Nothing unwatched here.") : qsTr("Nothing here.")))
             font.family: Theme.fontFamily
             font.pixelSize: Theme.bodyFont
             color: items.errorString !== "" ? Theme.error : Theme.dim

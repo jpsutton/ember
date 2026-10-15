@@ -89,11 +89,15 @@ FocusScope {
             font.pixelSize: Theme.px(36)
             color: Theme.text
         }
+        BadgeRow {
+            width: parent.width
+            badges: page.item.infoBadges || []
+        }
         Text {
             width: parent.width
+            visible: text !== ""
             wrapMode: Text.WordWrap
-            text: [page.item.year, page.item.runtimeText, page.item.communityRating ? "★ " + page.item.communityRating : "",
-                   page.item.officialRating, page.item.genres].filter(s => s).join("  ·  ")
+            text: page.item.genres || ""
             font.family: Theme.fontFamily
             font.pixelSize: Theme.bodyFont
             color: Theme.highlight
@@ -177,13 +181,17 @@ FocusScope {
             font.pixelSize: Theme.smallFont
             color: Theme.dim
         }
+        BadgeRow {
+            width: parent.width
+            badges: page.item.mediaBadges || []
+        }
         Text {
             width: parent.width
-            text: [page.item.videoFlags, page.item.audioFlags, page.item.studios].filter(s => s).join("   |   ")
+            visible: text !== ""
+            text: page.item.studios || ""
             elide: Text.ElideRight
             font.family: Theme.fontFamily
             font.pixelSize: Theme.smallFont
-            font.bold: true
             color: Theme.dim
         }
     }

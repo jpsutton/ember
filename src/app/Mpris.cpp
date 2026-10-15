@@ -50,22 +50,33 @@ void MprisPlayerAdaptor::SetPosition(const QDBusObjectPath&, qlonglong position)
 Mpris::Mpris(QObject* parent) : QObject(parent) {
   new MprisRootAdaptor(this);
   player_ = new MprisPlayerAdaptor(this);
+  setEnabled(true);
+}
+
+Mpris::~Mpris() { setEnabled(false); }
+
+void Mpris::setEnabled(bool v) {
+  if (v == registered_) return;
   QDBusConnection bus = QDBusConnection::sessionBus();
   // One name per process, so couchbox-focus can match it by PID.
   const QString service = QStringLiteral("org.mpris.MediaPlayer2.ember");
-  if (bus.registerObject(kObjectPath, this) && bus.registerService(service)) {
+  if (v) {
+    if (!bus.registerObject(kObjectPath, this)) {
+      qCWarning(lcMpris) << "could not register" << kObjectPath << bus.lastError().message();
+      return;
+    }
+    if (!bus.registerService(service)) {
+      qCWarning(lcMpris) << "could not register" << service << bus.lastError().message();
+      bus.unregisterObject(kObjectPath);
+      return;
+    }
     registered_ = true;
   } else {
-    qCWarning(lcMpris) << "could not register" << service << bus.lastError().message();
-  }
-}
-
-Mpris::~Mpris() {
-  if (registered_) {
-    QDBusConnection bus = QDBusConnection::sessionBus();
-    bus.unregisterService(QStringLiteral("org.mpris.MediaPlayer2.ember"));
+    bus.unregisterService(service);
     bus.unregisterObject(kObjectPath);
+    registered_ = false;
   }
+  emit enabledChanged();
 }
 
 void Mpris::publishChanges(const QStringList& properties) {

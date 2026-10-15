@@ -35,6 +35,8 @@ class Playback : public QObject {
   Q_PROPERTY(QString subtitle READ subtitle NOTIFY itemChanged)
   Q_PROPERTY(double position READ position NOTIFY positionChanged)
   Q_PROPERTY(double duration READ duration NOTIFY durationChanged)
+  // Width over height of the picture as shown (0 until known).
+  Q_PROPERTY(double videoAspect READ videoAspect NOTIFY videoAspectChanged)
   Q_PROPERTY(bool paused READ paused NOTIFY pausedChanged)
   Q_PROPERTY(bool buffering READ buffering NOTIFY bufferingChanged)
   // True once the first frame is up; until then QML keeps the screen black.
@@ -59,6 +61,9 @@ class Playback : public QObject {
   // A Live TV channel: no resume, no end; the cache keeps the last minutes,
   // so pausing and skipping back work within it (timeshift).
   Q_PROPERTY(bool live READ live NOTIFY itemChanged)
+  // Another page covers the player (Home while playing): the sound plays on
+  // but the picture isn't decoded.
+  Q_PROPERTY(bool background READ background WRITE setBackground NOTIFY backgroundChanged)
   // The cache in a live stream: the earliest position to skip back to, the
   // live edge, and how far behind it the picture is (0 while at the edge).
   Q_PROPERTY(double seekableStart READ seekableStart NOTIFY cacheChanged)
@@ -76,12 +81,15 @@ class Playback : public QObject {
 
   MpvVideo* video() const { return video_; }
   void setVideo(MpvVideo* video);
+  bool background() const { return background_; }
+  void setBackground(bool background);
   State state() const { return state_; }
   QVariantMap item() const { return item_; }
   QString title() const;
   QString subtitle() const;
   double position() const { return position_; }
   double duration() const { return duration_; }
+  double videoAspect() const { return video_aspect_; }
   bool paused() const { return paused_; }
   bool buffering() const { return buffering_; }
   bool videoShown() const { return video_shown_; }
@@ -130,6 +138,7 @@ class Playback : public QObject {
   void itemChanged();
   void positionChanged();
   void durationChanged();
+  void videoAspectChanged();
   void pausedChanged();
   void bufferingChanged();
   void videoShownChanged();
@@ -140,6 +149,7 @@ class Playback : public QObject {
   void nextItemChanged();
   void shufflingChanged();
   void cacheChanged();
+  void backgroundChanged();
   // Playback ended by the user or at the end of the file, and the server
   // has been told. |completed| is true at the natural end.
   void finished(bool completed);
@@ -183,12 +193,14 @@ class Playback : public QObject {
   int mpvTrackId(const QString& type, int jellyfin_index) const;
 
   QPointer<MpvVideo> video_;
+  bool background_ = false;
   State state_ = State::Idle;
   QVariantMap item_;
   QJsonObject item_json_;
   Stream stream_;
   double position_ = 0;
   double duration_ = 0;
+  double video_aspect_ = 0;
   double start_seconds_ = 0;
   bool paused_ = false;
   bool buffering_ = false;

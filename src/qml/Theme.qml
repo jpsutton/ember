@@ -14,10 +14,25 @@ QtObject {
     readonly property color background: "#0d0e11"
     readonly property color blade: "#e6101116"
     readonly property color bladeEdge: "#30ffffff"
-    readonly property color highlight: "#ffb300"
-    readonly property color highlightText: "#111111"
+    // The accent: the highlight and the text on it. Every pair has a contrast
+    // of at least 7:1 on the highlight and against the dark panels.
+    readonly property var accents: [
+        { id: "amber", name: "Amber", color: "#ffb300", text: "#111111" },
+        { id: "sky", name: "Sky", color: "#4fc3f7", text: "#0b1115" },
+        { id: "mint", name: "Mint", color: "#5fd68a", text: "#08140c" },
+        { id: "rose", name: "Rose", color: "#ff6f91", text: "#1a0a0f" },
+        { id: "violet", name: "Violet", color: "#b794f6", text: "#120b1f" },
+        { id: "white", name: "White", color: "#ffffff", text: "#000000" }
+    ]
+    property string accent: "amber"
+    readonly property var accentEntry: accents.find(a => a.id === accent) || accents[0]
+    readonly property color highlight: accentEntry.color
+    readonly property color highlightText: accentEntry.text
     readonly property color text: "#f2f2f2"
     readonly property color dim: "#9a9ca3"
+    // Unselected home menu rows: dimmer than dim, so the accent stands out
+    // whatever its hue.
+    readonly property color menuDim: "#7d8088"
     readonly property color faint: "#5c5f66"
     readonly property color scrim: "#b3000000"
     readonly property color panel: "#cc15161b"

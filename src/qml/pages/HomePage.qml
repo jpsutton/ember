@@ -9,6 +9,10 @@ FocusScope {
     id: page
 
     property var app
+    // The player this page covers (Home during playback), still playing;
+    // Back returns to it.
+    property var player: null
+    readonly property bool overPlayer: player !== null && player.active
 
     readonly property var menuItems: {
         const items = Session.shownLibraries.map(l => ({ title: l.name, kind: "library", library: l }))
@@ -179,8 +183,12 @@ FocusScope {
             onActivated: (index) => page.activate(page.menuItems[index])
             Keys.onPressed: (event) => {
                 // Left or Back opens the submenu, as in Amber; Home is the
-                // root, so Back has nowhere else to go.
-                if (event.key === Qt.Key_Left || event.key === Qt.Key_Back) {
+                // root, so Back has nowhere else to go, unless a video plays
+                // under this page.
+                if (event.key === Qt.Key_Back && page.overPlayer) {
+                    page.app.stack.pop()
+                    event.accepted = true
+                } else if (event.key === Qt.Key_Left || event.key === Qt.Key_Back) {
                     page.openSubmenu()
                     event.accepted = true
                 } else if (event.key === Qt.Key_Menu) {
@@ -203,6 +211,30 @@ FocusScope {
         font.pixelSize: Theme.smallFont
         font.letterSpacing: Theme.px(1)
         color: Theme.dim
+        style: Text.Outline
+        styleColor: "#80000000"
+    }
+
+    // What plays under this page, bottom right.
+    Text {
+        anchors.right: parent.right
+        anchors.rightMargin: Theme.px(60)
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: Theme.px(40)
+        width: parent.width * 0.5
+        horizontalAlignment: Text.AlignRight
+        elide: Text.ElideMiddle
+        visible: page.overPlayer
+        text: {
+            if (!page.overPlayer) return ""
+            const playback = page.player.playback
+            const name = playback.item.type === "Episode" && playback.subtitle !== ""
+                ? playback.title + " · " + playback.subtitle : playback.title
+            return qsTr("Playing %1 · Back returns to it").arg(name)
+        }
+        font.family: Theme.fontFamily
+        font.pixelSize: Theme.smallFont
+        color: Theme.highlight
         style: Text.Outline
         styleColor: "#80000000"
     }

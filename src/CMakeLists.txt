@@ -13,6 +13,7 @@ qt_add_qml_module(ember_lib
     qml/Main.qml
     qml/Theme.qml
     qml/components/Backdrop.qml
+    qml/components/BadgeRow.qml
     qml/components/BigRow.qml
     qml/components/ChannelLogo.qml
     qml/components/DetailsPane.qml
@@ -20,6 +21,7 @@ qt_add_qml_module(ember_lib
     qml/components/ItemRow.qml
     qml/components/Keyboard.qml
     qml/components/ListScrollBar.qml
+    qml/components/MediaBadge.qml
     qml/components/MenuList.qml
     qml/components/PopupMenu.qml
     qml/components/SkipReadout.qml
@@ -47,6 +49,7 @@ qt_add_qml_module(ember_lib
     models/ItemListModel.h models/ItemListModel.cpp
     playback/Playback.h playback/Playback.cpp
     playback/Shuffle.h playback/Shuffle.cpp
+    playback/TrackLanguage.h playback/TrackLanguage.cpp
     livetv/GuideLogic.h livetv/GuideLogic.cpp
     livetv/LiveGuide.h livetv/LiveGuide.cpp
 )

@@ -102,6 +102,9 @@ class Mpris : public QObject {
   Q_PROPERTY(double duration READ duration WRITE setDuration NOTIFY changed)  // seconds
   Q_PROPERTY(double position READ position WRITE setPosition NOTIFY positionChanged)  // seconds
   Q_PROPERTY(bool canGoNext READ canGoNext WRITE setCanGoNext NOTIFY changed)
+  // Holds the D-Bus name while true. The name is one per process, so a
+  // player left behind gives it up before the next one starts.
+  Q_PROPERTY(bool enabled READ enabled WRITE setEnabled NOTIFY enabledChanged)
 
  public:
   explicit Mpris(QObject* parent = nullptr);
@@ -121,6 +124,8 @@ class Mpris : public QObject {
   void setPosition(double v);
   bool canGoNext() const { return can_go_next_; }
   void setCanGoNext(bool v);
+  bool enabled() const { return registered_; }
+  void setEnabled(bool v);
 
   // Tells MPRIS clients the position jumped.
   Q_INVOKABLE void notifySeeked();
@@ -128,6 +133,7 @@ class Mpris : public QObject {
  signals:
   void changed();
   void positionChanged();
+  void enabledChanged();
   void playRequested();
   void pauseRequested();
   void playPauseRequested();

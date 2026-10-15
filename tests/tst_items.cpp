@@ -4,6 +4,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkAccessManager>
+#include <QStandardPaths>
 #include <QTest>
 #include <QTimeZone>
 #include <QUrlQuery>
@@ -26,11 +27,24 @@ class TestItems : public QObject {
     return QJsonDocument::fromJson(file.readAll()).object();
   }
 
+  // "tag|value" or "icon|value" per badge, space-separated.
+  static QString Badges(const QVariant& list) {
+    QStringList out;
+    for (const QVariant& v : list.toList()) {
+      const QVariantMap b = v.toMap();
+      const QString head = b.value("tag").toString().isEmpty() ? b.value("icon").toString() : b.value("tag").toString();
+      out.append(b.value("value").toString().isEmpty() ? head : head + QLatin1Char('|') + b.value("value").toString());
+    }
+    return out.join(QLatin1Char(' '));
+  }
+
   QNetworkAccessManager network_;
   ApiClient api_{&network_, QStringLiteral("device-1")};
 
  private slots:
   void initTestCase() {
+    // Settings from a scratch config: the default subtitle language, eng-US.
+    QStandardPaths::setTestModeEnabled(true);
     api_.setBaseUrl(QUrl(QStringLiteral("http://media.example:8096/jellyfin/")));
     api_.setToken(QStringLiteral("secret"));
   }
@@ -42,9 +56,9 @@ class TestItems : public QObject {
     QCOMPARE(m.value("type").toString(), QStringLiteral("Movie"));
     QCOMPARE(m.value("year").toInt(), 1968);
     QVERIFY(m.value("playable").toBool());
-    QCOMPARE(m.value("videoFlags").toString(), QStringLiteral("720p · H.264"));
-    QCOMPARE(m.value("audioFlags").toString(), QStringLiteral("Dolby Digital · 5.1"));
-    QVERIFY(m.value("hasSubtitles").toBool());
+    QCOMPARE(Badges(m.value("mediaBadges")),
+             QStringLiteral("HD|720 film|H.264 aspect|1.78 speaker|DD channels|5.1 CC"));
+    QVERIFY(Badges(m.value("infoBadges")).startsWith(QStringLiteral("NR calendar|1968 clock|4 min star|7.6 critic|95%")));
     QCOMPARE(m.value("runtimeText").toString(), QStringLiteral("4 min"));
 
     const QJsonObject user = json.value("UserData").toObject();
@@ -72,6 +86,37 @@ class TestItems : public QObject {
     QVERIFY(m.value("poster").toString().contains(json.value("SeriesId").toString()));
     // The episode still is kept as the thumbnail.
     QVERIFY(m.value("thumb").toString().contains(json.value("Id").toString()));
+    // Mono AAC, no language tags and no subtitles.
+    QCOMPARE(Badges(m.value("mediaBadges")), QStringLiteral("HD|720 film|H.264 aspect|1.78 speaker|AAC channels|1.0"));
+    QVERIFY(Badges(m.value("infoBadges")).startsWith(QStringLiteral("TV-PG calendar|")));
+    QVERIFY(!Badges(m.value("infoBadges")).contains(QStringLiteral("RESUME")));
+  }
+
+  void mediaBadges() {
+    using ember::jellyfin::MediaBadges;
+    const auto stream = [](QJsonObject o) { return QJsonValue(o); };
+    QJsonObject item{{"MediaStreams", QJsonArray{
+        stream({{"Type", "Video"}, {"Codec", "hevc"}, {"Width", 3840}, {"Height", 1606}, {"VideoRangeType", "DOVIWithHDR10"}}),
+        stream({{"Type", "Audio"}, {"Codec", "truehd"}, {"Profile", "Dolby TrueHD + Dolby Atmos"}, {"Channels", 8},
+                {"Language", "eng"}, {"IsDefault", true}}),
+        stream({{"Type", "Subtitle"}, {"Language", "eng"}}), stream({{"Type", "Subtitle"}, {"Language", "spa"}}),
+        stream({{"Type", "Subtitle"}, {"Language", "fre"}}), stream({{"Type", "Subtitle"}, {"Language", "ger"}}),
+        stream({{"Type", "Subtitle"}, {"Language", "eng"}})}}};
+    const QString us = QStringLiteral("eng-US");
+    QCOMPARE(Badges(MediaBadges(item, us)),
+             QStringLiteral("UHD|4K film|HEVC DV HDR|10 aspect|2.39 speaker|TrueHD ATMOS channels|7.1 CC"));
+    // CC only for subtitles in the preferred language.
+    QVERIFY(!Badges(MediaBadges(item, QStringLiteral("jpn"))).contains(QStringLiteral("CC")));
+
+    // Broadcast 1080i MPEG-2 with stereo DTS-HD MA (made up); its subtitles
+    // have no language, so CC shows only without a preference.
+    item = QJsonObject{{"MediaStreams", QJsonArray{
+        stream({{"Type", "Video"}, {"Codec", "mpeg2video"}, {"Width", 1920}, {"Height", 1080}, {"IsInterlaced", true},
+                {"AspectRatio", "16:9"}}),
+        stream({{"Type", "Audio"}, {"Codec", "dts"}, {"Profile", "DTS-HD MA"}, {"Channels", 2}}),
+        stream({{"Type", "Subtitle"}})}}};
+    QCOMPARE(Badges(MediaBadges(item, us)), QStringLiteral("HD|1080i film|MPEG-2 aspect|1.78 speaker|DTS-HD MA channels|2.0"));
+    QVERIFY(Badges(MediaBadges(item, QString())).endsWith(QStringLiteral(" CC")));
   }
 
   void liveTv() {
@@ -101,6 +146,9 @@ class TestItems : public QObject {
     QCOMPARE(series.value("type").toString(), QStringLiteral("Series"));
     QVERIFY(!series.value("playable").toBool());
     QVERIFY(series.value("recursiveCount").toInt() > 0);
+    // An ended show's run, then its counts.
+    QVERIFY(Badges(series.value("infoBadges")).contains(QStringLiteral("calendar|1959–1964 clock|25 min star|8.5 SEASONS|2 EPISODES|8")));
+    QCOMPARE(Badges(season.value("infoBadges")).section(' ', 0, 0), QStringLiteral("EPISODES|5"));
   }
 
   void runtime_data() {

@@ -19,6 +19,7 @@ Window {
 
     Binding { target: Theme; property: "screenHeight"; value: window.height }
     Binding { target: Theme; property: "scale"; value: EmberSettings.uiScale }
+    Binding { target: Theme; property: "accent"; value: EmberSettings.accent }
 
     // What a library's lists contain, by collection type.
     function libraryTypes(collectionType) {
@@ -92,11 +93,13 @@ Window {
     }
 
     function play(item, fromStart) {
+        retireBackgroundPlayer()
         stack.push(playerPage, { itemId: item.id, fromStart: fromStart === true })
     }
 
     // A show's episodes in random order, or one season's.
     function playShuffled(seriesId, seasonId) {
+        retireBackgroundPlayer()
         stack.push(playerPage, { shuffleSeriesId: seriesId, shuffleSeasonId: seasonId || "" })
     }
 
@@ -142,11 +145,39 @@ Window {
     function openLiveTv() {
         const top = stack.currentItem
         if (top && top.objectName === "livetv") return
+        retireBackgroundPlayer()
         stack.push(liveTvPage)
     }
 
+    // Home during playback puts a home page over the player and leaves it
+    // playing; Back on that page returns to it. Home again goes back to that
+    // page, not the first one, so the player stays reachable.
     function goHome() {
-        if (Session.state === Session.SignedIn && Session.librariesChosen && stack.depth > 1) stack.pop(null)
+        if (Session.state !== Session.SignedIn || !Session.librariesChosen) return
+        const top = stack.currentItem
+        if (top && top.objectName === "player" && top.active) {
+            top.backgrounded = true
+            stack.push(homePage, { player: top })
+            return
+        }
+        const background = backgroundPlayer()
+        if (background) stack.pop(stack.get(background.StackView.index + 1))
+        else if (stack.depth > 1) stack.pop(null)
+    }
+
+    // The player left playing under other pages, or null.
+    function backgroundPlayer() {
+        for (let i = stack.depth - 2; i >= 0; --i) {
+            const page = stack.get(i, StackView.DontLoad)
+            if (page && page.objectName === "player" && page.backgrounded && page.active) return page
+        }
+        return null
+    }
+
+    // Before something else plays: one player at a time.
+    function retireBackgroundPlayer() {
+        const background = backgroundPlayer()
+        if (background) background.retire()
     }
 
     // The context menu for an item (Menu key, or OK held).
@@ -186,9 +217,11 @@ Window {
         else stack.replace(null, homePage)
     }
 
-    // The player page, when it is the one on screen.
+    // The player page on screen, else the one playing in the background.
     function player() {
-        return stack.currentItem && stack.currentItem.objectName === "player" ? stack.currentItem : null
+        const top = stack.currentItem
+        if (top && top.objectName === "player" && !top.retired) return top
+        return backgroundPlayer()
     }
 
     Connections {
@@ -202,6 +235,8 @@ Window {
             const index = Math.max(0, Math.min(itemIds.length - 1, startIndex))
             const current = window.player()
             if (current) {
+                // Play Now brings a background player back to the front.
+                if (current !== stack.currentItem && command !== "PlayNext" && command !== "PlayLast") stack.pop(current)
                 current.playQueue(itemIds, index, startSeconds, command)
             } else {
                 stack.push(playerPage, { itemId: itemIds[index], startSeconds: startSeconds > 0 ? startSeconds : -1,

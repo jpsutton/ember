@@ -113,8 +113,15 @@ void Playback::setVideo(MpvVideo* video) {
     // to audio instead, the drift between the two clocks walks frames across
     // the compositor's deadline every ~17 s, a few seconds of stutter each.
     // Without a known refresh rate mpv falls back to audio timing.
-    video_->setOption(QStringLiteral("video-sync"), QStringLiteral("display-resample"));
-    if (CouchboxConfig().fastScaling()) {
+    // couchbox overrides it where the GPU can't redraw every refresh (the
+    // Raspberry Pi: VideoSync=audio).
+    const CouchboxConfig couchbox;
+    video_->setOption(QStringLiteral("video-sync"), couchbox.videoSync().isEmpty()
+                                                         ? QStringLiteral("display-resample")
+                                                         : couchbox.videoSync());
+    // mpv's auto-safe never tries V4L2 decoders; couchbox names them there.
+    if (!couchbox.hwdec().isEmpty()) video_->setOption(QStringLiteral("hwdec"), couchbox.hwdec());
+    if (couchbox.fastScaling()) {
       // couchbox's profile for weak GPUs: cheap scalers, no dithering.
       for (const auto& [name, value] :
            std::initializer_list<std::pair<const char*, const char*>>{{"scale", "bilinear"},
@@ -486,7 +493,10 @@ void Playback::loadStream(double start_seconds) {
     // which on a live source catches up with the broadcast and runs dry.
     // display-vdrop keeps frames on the refresh too, but holds the
     // broadcast's pace by showing a frame one refresh longer every ~33 s.
-    options << QStringLiteral("video-sync=display-vdrop");
+    // A board couchbox times to audio (VideoSync) can't afford redrawing
+    // every refresh here either; audio timing holds the broadcast's pace too.
+    const QString sync = CouchboxConfig().videoSync();
+    options << QStringLiteral("video-sync=%1").arg(sync.isEmpty() ? QStringLiteral("display-vdrop") : sync);
   }
   options << QStringLiteral("force-media-title=%1").arg(QString(title()).remove(QLatin1Char(',')));
   command << options.join(QLatin1Char(','));

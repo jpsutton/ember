@@ -68,8 +68,11 @@ CouchboxConfig::CouchboxConfig(QObject* parent) : QObject(parent) {
   transcode_av1_ = video.readEntry("TranscodeAV1", false);
   transcode_vp9_ = video.readEntry("TranscodeVP9", false);
   fast_scaling_ = video.readEntry("PlezyScaling", QString()) == QLatin1String("fast");
-  qCInfo(lcSystem, "couchboxrc: transcode hevc=%d hevc10=%d av1=%d vp9=%d, fast scaling=%d", transcode_hevc_,
-         transcode_hevc10_, transcode_av1_, transcode_vp9_, fast_scaling_);
+  hwdec_ = video.readEntry("Hwdec", QString());
+  video_sync_ = video.readEntry("VideoSync", QString());
+  qCInfo(lcSystem, "couchboxrc: transcode hevc=%d hevc10=%d av1=%d vp9=%d, fast scaling=%d, hwdec=%s, video-sync=%s",
+         transcode_hevc_, transcode_hevc10_, transcode_av1_, transcode_vp9_, fast_scaling_, qUtf8Printable(hwdec_),
+         qUtf8Printable(video_sync_));
 }
 
 QVariantMap ViewSettings::load(const QString& key) const {

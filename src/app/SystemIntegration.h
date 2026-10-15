@@ -45,6 +45,11 @@ class CouchboxConfig : public QObject {
   Q_PROPERTY(bool transcodeVp9 READ transcodeVp9 CONSTANT)
   // couchbox's "fast" scaling profile for weak GPUs.
   Q_PROPERTY(bool fastScaling READ fastScaling CONSTANT)
+  // mpv's hwdec and video-sync, set by couchbox-video-profile only where
+  // Ember's defaults don't suit (V4L2 boards such as the Raspberry Pi).
+  // Empty: keep Ember's own.
+  Q_PROPERTY(QString hwdec READ hwdec CONSTANT)
+  Q_PROPERTY(QString videoSync READ videoSync CONSTANT)
 
  public:
   explicit CouchboxConfig(QObject* parent = nullptr);
@@ -54,6 +59,8 @@ class CouchboxConfig : public QObject {
   bool transcodeAv1() const { return transcode_av1_; }
   bool transcodeVp9() const { return transcode_vp9_; }
   bool fastScaling() const { return fast_scaling_; }
+  QString hwdec() const { return hwdec_; }
+  QString videoSync() const { return video_sync_; }
 
  private:
   bool transcode_hevc_ = false;
@@ -61,6 +68,8 @@ class CouchboxConfig : public QObject {
   bool transcode_av1_ = false;
   bool transcode_vp9_ = false;
   bool fast_scaling_ = false;
+  QString hwdec_;
+  QString video_sync_;
 };
 
 // Per-library view choices (sort, order, hide watched, list style),

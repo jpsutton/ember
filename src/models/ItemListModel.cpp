@@ -33,8 +33,7 @@ const QList<QByteArray>& FieldNames() {
       "genres",      "studios",       "seriesId",      "seriesName",     "seasonId",       "seasonName",
       "indexNumber", "parentIndexNumber", "episodeLabel", "childCount",  "recursiveCount", "played",
       "playedPercentage", "playbackPositionTicks", "resumeText", "unplayedCount", "isFavorite", "status",
-      "poster",      "backdrop",      "logo",          "thumb",          "videoFlags",     "audioFlags",
-      "hasSubtitles"};
+      "poster",      "backdrop",      "logo",          "thumb",          "infoBadges",     "mediaBadges"};
   return names;
 }
 

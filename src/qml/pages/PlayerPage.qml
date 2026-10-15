@@ -178,6 +178,8 @@ FocusScope {
         skipTarget = target
         playback.seekTo(target)
         skipBadgeTimer.restart()
+        // The bar stays up while skipping, to see where it lands.
+        showOsd()
     }
 
     function jumpChapter(direction) {
@@ -268,7 +270,12 @@ FocusScope {
     Timer {
         id: osdTimer
         interval: 5000
-        onTriggered: if (!playback.paused) page.osdVisible = false
+        // Up while paused or a run of skips is still showing.
+        onTriggered: {
+            if (playback.paused) return
+            if (skipBadgeTimer.running) restart()
+            else page.osdVisible = false
+        }
     }
 
     // The skip readout stays this long after the last press, then fades.
@@ -427,8 +434,12 @@ FocusScope {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: Theme.px(300)
+        height: Theme.px(360)
         visible: page.osdVisible && playback.state === Playback.Playing
+
+        // The file's badges, and the ratings among the item's.
+        readonly property var badges: (playback.item.mediaBadges || []).concat((playback.item.infoBadges || []).filter(
+            b => b.icon === "star" || b.icon === "critic" || (b.tag !== "" && b.icon === "" && b.value === "")))
 
         Rectangle {
             anchors.fill: parent
@@ -475,12 +486,21 @@ FocusScope {
             color: Theme.text
         }
 
+        BadgeRow {
+            x: Theme.px(80)
+            y: Theme.px(166)
+            width: parent.width - Theme.px(160)
+            height: Theme.px(42)
+            clip: true
+            badges: osd.badges
+        }
+
         // Seek bar.
         Item {
             id: bar
             visible: !playback.live
             x: Theme.px(80)
-            y: Theme.px(190)
+            y: Theme.px(250)
             width: parent.width - Theme.px(160)
             height: Theme.px(10)
             Rectangle { anchors.fill: parent; radius: height / 2; color: "#40ffffff" }

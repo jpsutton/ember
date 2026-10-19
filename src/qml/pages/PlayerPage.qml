@@ -9,8 +9,8 @@ import Ember.Player
 //
 // Keys: OK or Play/Pause pauses, Left/Right skip back and forward (at once,
 // with a running total at that side), Up/Down and Channel +/-
-// jump chapters, Menu opens audio and subtitle choices, Info toggles the
-// panel, Back or Stop ends playback. Home leaves it playing under a home
+// jump chapters, Menu opens audio, subtitle and audio offset choices, Info
+// toggles the panel, Back or Stop ends playback. Home leaves it playing under a home
 // page of its own, and Back there comes back to it (see Main.goHome).
 FocusScope {
     id: page
@@ -211,6 +211,8 @@ FocusScope {
             const list = [{ title: qsTr("Off"), checked: !currentSub }].concat(subs.map(t => ({ title: t.title, checked: t.selected })))
             page.app.menu.open(qsTr("Subtitles"), list, (i) => playback.selectSubtitle(i === 0 ? -1 : subs[i - 1].index))
         })
+        options.push({ title: qsTr("Audio offset"), detail: audioOffset.label(playback.audioDelay) })
+        actions.push(() => audioOffset.open())
         if (playback.chapters.length > 0) {
             options.push({ title: qsTr("Chapters"), detail: String(playback.chapters.length) })
             actions.push(() => page.app.menu.open(qsTr("Chapters"),
@@ -426,6 +428,11 @@ FocusScope {
         total: page.skipTotal
         forward: page.skipForward
         shown: skipBadgeTimer.running
+    }
+
+    AudioOffset {
+        id: audioOffset
+        playback: playback
     }
 
     // The on-screen display.

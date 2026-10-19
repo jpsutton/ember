@@ -64,6 +64,10 @@ class Playback : public QObject {
   // Another page covers the player (Home while playing): the sound plays on
   // but the picture isn't decoded.
   Q_PROPERTY(bool background READ background WRITE setBackground NOTIFY backgroundChanged)
+  // Shifts the sound against the picture, in milliseconds (mpv's
+  // audio-delay): positive plays it later. Kept for the next item, so it
+  // holds across channel changes and episodes.
+  Q_PROPERTY(int audioDelay READ audioDelay WRITE setAudioDelay NOTIFY audioDelayChanged)
   // The cache in a live stream: the earliest position to skip back to, the
   // live edge, and how far behind it the picture is (0 while at the edge).
   Q_PROPERTY(double seekableStart READ seekableStart NOTIFY cacheChanged)
@@ -83,6 +87,8 @@ class Playback : public QObject {
   void setVideo(MpvVideo* video);
   bool background() const { return background_; }
   void setBackground(bool background);
+  int audioDelay() const { return audio_delay_; }
+  void setAudioDelay(int milliseconds);
   State state() const { return state_; }
   QVariantMap item() const { return item_; }
   QString title() const;
@@ -150,6 +156,7 @@ class Playback : public QObject {
   void shufflingChanged();
   void cacheChanged();
   void backgroundChanged();
+  void audioDelayChanged();
   // Playback ended by the user or at the end of the file, and the server
   // has been told. |completed| is true at the natural end.
   void finished(bool completed);
@@ -194,6 +201,7 @@ class Playback : public QObject {
 
   QPointer<MpvVideo> video_;
   bool background_ = false;
+  int audio_delay_ = 0;
   State state_ = State::Idle;
   QVariantMap item_;
   QJsonObject item_json_;

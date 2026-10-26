@@ -12,6 +12,7 @@ qt_add_qml_module(ember_lib
   QML_FILES
     qml/Main.qml
     qml/Theme.qml
+    qml/components/AudioOffset.qml
     qml/components/Backdrop.qml
     qml/components/BadgeRow.qml
     qml/components/BigRow.qml

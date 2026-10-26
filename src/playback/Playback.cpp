@@ -103,6 +103,7 @@ void Playback::setVideo(MpvVideo* video) {
     video_->observe(QStringLiteral("track-list"), QStringLiteral("node"));
     video_->observe(QStringLiteral("demuxer-cache-state"), QStringLiteral("node"));
     applyAudioSettings();
+    if (audio_delay_ != 0) video_->setOption(QStringLiteral("audio-delay"), audio_delay_ / 1000.0);
     // Deinterlace frames the decoder marks interlaced (broadcast 480i and
     // 1080i, which Live TV passes through untouched), as Kodi does by
     // default. With VA-API this is the GPU's vavpp; progressive video is
@@ -668,6 +669,14 @@ void Playback::setBackground(bool background) {
   // mpv picks the video track again and catches it up to the sound.
   if (video_) video_->setOption(QStringLiteral("vid"), background ? QStringLiteral("no") : QStringLiteral("auto"));
   emit backgroundChanged();
+}
+
+void Playback::setAudioDelay(int milliseconds) {
+  milliseconds = std::clamp(milliseconds, -5000, 5000);
+  if (milliseconds == audio_delay_) return;
+  audio_delay_ = milliseconds;
+  if (video_) video_->setOption(QStringLiteral("audio-delay"), milliseconds / 1000.0);
+  emit audioDelayChanged();
 }
 
 void Playback::stop() {

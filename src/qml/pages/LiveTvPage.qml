@@ -172,6 +172,8 @@ FocusScope {
             const list = [{ title: qsTr("Off"), checked: !currentSub }].concat(subs.map(t => ({ title: t.title, checked: t.selected })))
             page.app.menu.open(qsTr("Subtitles"), list, (i) => playback.selectSubtitle(i === 0 ? -1 : subs[i - 1].index))
         })
+        options.push({ title: qsTr("Audio offset"), detail: audioOffset.label(playback.audioDelay) })
+        actions.push(() => audioOffset.open())
         if (ch.id) {
             options.push({ title: ch.isFavorite ? qsTr("Remove from favourites") : qsTr("Add to favourites") })
             actions.push(() => guide.setFavorite(ch.id, !ch.isFavorite))
@@ -255,6 +257,11 @@ FocusScope {
 
     ScreenInhibitor {
         active: playback.state === Playback.Playing && !playback.paused
+    }
+
+    AudioOffset {
+        id: audioOffset
+        playback: playback
     }
 
     Mpris {
